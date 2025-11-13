@@ -1,0 +1,59 @@
+{
+  "mlx_servers": {
+    "instances": 27,
+    "base_port": 8080,
+    "model_path": "lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit",
+    "quantization": "8bit",
+    "max_tokens": 32768,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "repetition_penalty": 1.0,
+    "presence_penalty": 1.5,
+    "greedy": false,
+    "out_seq_length": 32768,
+    "gpu_memory_fraction": 0.85,
+    "batch_size": 6,
+    "context_length": 32768,
+    "rope_scaling": {
+      "type": "linear",
+      "factor": 1.0
+    }
+  },
+  "load_balancer": {
+    "algorithm": "least_connections",
+    "health_check_interval": 30,
+    "health_check_timeout": 5,
+    "max_retries": 3,
+    "retry_delay": 1000,
+    "circuit_breaker": {
+      "failure_threshold": 5,
+      "recovery_timeout": 60000,
+      "half_open_max_calls": 3
+    }
+  },
+  "performance": {
+    "target_tokens_per_second": 55,
+    "max_queue_size": 1000,
+    "request_timeout": 30000,
+    "keep_alive": true,
+    "tcp_nodelay": true,
+    "compression": true
+  },
+  "monitoring": {
+    "metrics_enabled": true,
+    "metrics_port": 9090,
+    "logging_level": "INFO",
+    "log_requests": true,
+    "log_responses": false
+  },
+  "model_config": {
+    "name": "qwen3-vl-2b-thinking",
+    "type": "lm",
+    "precision": "8bit",
+    "memory_usage_gb": 1.2,
+    "max_concurrent_requests": 10,
+    "warmup_enabled": true,
+    "warmup_samples": 5
+  }
+}

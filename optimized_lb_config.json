@@ -1,0 +1,24 @@
+{
+    "mlx_servers": {
+        "base_port": 8080,
+        "instances": 27
+    },
+    "load_balancer": {
+        "health_check_timeout": 5,
+        "circuit_breaker": {
+            "failure_threshold": 5,
+            "recovery_timeout": 60
+        },
+        "max_retries": 2,
+        "retry_delay": 500,
+        "max_batch_size": 8,
+        "max_batch_wait": 0.05,
+        "connection_pool_size": 100,
+        "algorithm": "performance"
+    },
+    "performance": {
+        "request_timeout": 45000,
+        "target_throughput": 1200,
+        "memory_limit_gb": 2.0
+    }
+}

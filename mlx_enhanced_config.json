@@ -1,0 +1,17 @@
+{
+    "mlx_servers": {
+        "base_port": 8080,
+        "instances": 27
+    },
+    "health_check_interval": 15,
+    "performance_monitor_interval": 10,
+    "max_restart_attempts": 3,
+    "restart_cooldown": 60,
+    "optimization": {
+        "batch_size": 6,
+        "max_concurrent_requests": 12,
+        "quantization": "8bit",
+        "memory_limit_gb": 2.5,
+        "target_throughput": 1200
+    }
+}
