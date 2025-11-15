@@ -14,7 +14,11 @@ const logger = winston.createLogger({
       return `${chalk.gray(timestamp)} ${level} ${message}`;
     })
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console({
+      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
+    }),
+  ],
 });
 
 export interface GeneratedTool {
@@ -59,27 +63,42 @@ export class ProgressiveDisclosureGenerator {
   async generateTools(): Promise<GeneratedTool[]> {
     const tools = this.toolRegistry.getAllTools();
     
-    return tools.map(tool => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-      category: tool.category,
-      complexity: tool.complexity,
-      tags: tool.tags,
-    }));
+    logger.info(`Generating ${tools.length} tools from registry`);
+    
+    const generatedTools = tools.map(tool => {
+      logger.debug(`Generating tool: ${tool.name} (${tool.category})`);
+      
+      return {
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        category: tool.category,
+        complexity: tool.complexity,
+        tags: tool.tags,
+      };
+    });
+    
+    logger.info(`Successfully generated ${generatedTools.length} tools`);
+    return generatedTools;
   }
 
   async loadTool(name: string): Promise<GeneratedTool | null> {
+    logger.debug(`Loading tool: ${name}`);
+    
     // Check cache first
     if (this.cache.has(name)) {
+      logger.debug(`Tool ${name} found in cache`);
       return this.cache.get(name)!;
     }
     
     const tool = this.toolRegistry.getTool(name);
     
     if (!tool) {
+      logger.warn(`Tool not found in registry: ${name}`);
       return null;
     }
+    
+    logger.debug(`Tool found in registry: ${name}, creating generated tool`);
     
     const generatedTool: GeneratedTool = {
       name: tool.name,
@@ -92,6 +111,7 @@ export class ProgressiveDisclosureGenerator {
     
     // Cache for future use
     this.cache.set(name, generatedTool);
+    logger.debug(`Tool ${name} cached successfully`);
     
     return generatedTool;
   }

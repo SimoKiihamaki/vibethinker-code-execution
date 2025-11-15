@@ -128,7 +128,7 @@ class MLXLoadBalancer:
             lb_config = self.config['load_balancer']
             self.circuit_breakers[i] = CircuitBreaker(
                 failure_threshold=lb_config['circuit_breaker']['failure_threshold'],
-                recovery_timeout=lb_config['circuit_breaker']['recovery_timeout']
+                recovery_timeout=lb_config['circuit_breaker']['recovery_timeout'] / 1000
             )
         
         logger.info(f"Initialized {num_instances} MLX instances on ports {base_port}-{base_port + num_instances - 1}")
@@ -368,7 +368,7 @@ class MLXLoadBalancer:
 async def main():
     """Main function"""
     # Load configuration
-    with open('mlx-servers/config.json', 'r') as f:
+    with open('config.json', 'r') as f:
         config = json.load(f)
     
     # Create load balancer

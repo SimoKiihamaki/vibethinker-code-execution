@@ -1,0 +1,36 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/client.ts",
+  "context": {
+    "summary": ".TS file (295 lines, 8.9KB) - 5 imports, 1 exports, ~7 functions",
+    "dependencies": [
+      "axios",
+      "zod",
+      "winston",
+      "chalk",
+      "p-queue"
+    ],
+    "relatedFiles": [],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-13T19:53:39.320Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mcp-server/src/client.ts",
+        "timestamp": "2025-11-13T19:53:39.329Z"
+      }
+    ],
+    "fileType": ".ts",
+    "complexity": "complex",
+    "suggestions": [
+      "Consider adding more documentation or comments",
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-13T19:53:39.329Z",
+  "expiresAt": "2025-11-13T20:53:39.329Z"
+}

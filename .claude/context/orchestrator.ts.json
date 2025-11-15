@@ -1,0 +1,39 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/orchestrator.ts",
+  "context": {
+    "summary": ".TS file (314 lines, 8.6KB) - 5 imports, 3 exports, ~0 functions",
+    "dependencies": [
+      "zod",
+      "winston",
+      "chalk",
+      "./client.js",
+      "./tools/registry.js"
+    ],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/client.js",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/tools/registry.js"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-13T20:20:34.176Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mcp-server/src/orchestrator.ts",
+        "timestamp": "2025-11-13T20:20:34.186Z"
+      }
+    ],
+    "fileType": ".ts",
+    "complexity": "complex",
+    "suggestions": [
+      "Consider adding more documentation or comments",
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-13T20:20:34.186Z",
+  "expiresAt": "2025-11-13T21:20:34.186Z"
+}

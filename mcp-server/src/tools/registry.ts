@@ -13,7 +13,11 @@ const logger = winston.createLogger({
       return `${chalk.gray(timestamp)} ${level} ${message}`;
     })
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console({
+      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
+    }),
+  ],
 });
 
 export interface ToolDefinition {
@@ -32,22 +36,23 @@ export class ToolRegistry {
   private categories: Map<string, ToolDefinition[]> = new Map();
 
   constructor() {
+    // Synchronous initialization - tools must be registered immediately
     this.initializeTools();
   }
 
-  private async initializeTools(): Promise<void> {
+  private initializeTools(): void {
     logger.info('Initializing tool registry...');
-    
-    // Register core tools
-    await this.registerRepoSearchTools();
-    await this.registerCodeAnalysisTools();
-    await this.registerArchitecturalTools();
-    await this.registerContextBuildingTools();
-    
+
+    // Register core tools synchronously
+    this.registerRepoSearchTools();
+    this.registerCodeAnalysisTools();
+    this.registerArchitecturalTools();
+    this.registerContextBuildingTools();
+
     logger.info(chalk.green(`✅ Registered ${this.tools.size} tools across ${this.categories.size} categories`));
   }
 
-  private async registerRepoSearchTools(): Promise<void> {
+  private registerRepoSearchTools(): void {
     const category = 'repo-search';
     const tools: ToolDefinition[] = [
       {
@@ -144,7 +149,7 @@ export class ToolRegistry {
     }
   }
 
-  private async registerCodeAnalysisTools(): Promise<void> {
+  private registerCodeAnalysisTools(): void {
     const category = 'code-analysis';
     const tools: ToolDefinition[] = [
       {
@@ -241,7 +246,7 @@ export class ToolRegistry {
     }
   }
 
-  private async registerArchitecturalTools(): Promise<void> {
+  private registerArchitecturalTools(): void {
     const category = 'architectural';
     const tools: ToolDefinition[] = [
       {
@@ -318,7 +323,7 @@ export class ToolRegistry {
     }
   }
 
-  private async registerContextBuildingTools(): Promise<void> {
+  private registerContextBuildingTools(): void {
     const category = 'context-building';
     const tools: ToolDefinition[] = [
       {
@@ -447,7 +452,7 @@ export class ToolRegistry {
   }
 
   getToolStats(): Record<string, number> {
-    const stats = {
+    const stats: Record<string, number> = {
       total: this.tools.size,
       categories: this.categories.size,
     };

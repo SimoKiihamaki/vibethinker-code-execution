@@ -7,6 +7,7 @@ import {
 import winston from 'winston';
 import chalk from 'chalk';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { MLXClient } from './client.js';
 import { Orchestrator } from './orchestrator.js';
 import { ToolRegistry } from './tools/registry.js';
@@ -21,7 +22,11 @@ const logger = winston.createLogger({
       return `${chalk.gray(timestamp)} ${level} ${message}`;
     })
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console({
+      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
+    }),
+  ],
 });
 
 export class VibeThinkerMCPServer {
@@ -57,37 +62,57 @@ export class VibeThinkerMCPServer {
   private setupToolHandlers() {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       logger.info('Listing available tools');
-      
+
       // Generate progressive disclosure API
       const tools = await this.disclosureGenerator.generateTools();
-      
+
+      logger.info(`Returning ${tools.length} tools to Claude Code`);
+
       return {
-        tools: tools.map(tool => ({
-          name: tool.name,
-          description: tool.description,
-          inputSchema: tool.inputSchema,
-        })),
+        tools: tools.map(tool => {
+          // Convert Zod schema to JSON Schema
+          const jsonSchemaDoc = zodToJsonSchema(tool.inputSchema, tool.name);
+          
+          // Extract the actual schema definition (not the $ref document)
+          const inputSchema = jsonSchemaDoc.definitions?.[tool.name] || jsonSchemaDoc;
+          
+          // Generate a title from the tool name (capitalize and add spaces)
+          const title = tool.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+          
+          logger.debug(`Tool: ${tool.name}, Title: ${title}, Schema keys: ${Object.keys(inputSchema)}`);
+
+          return {
+            name: tool.name,
+            title: title,
+            description: tool.description,
+            inputSchema: inputSchema,
+          };
+        }),
       };
     });
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       
-      logger.info(`Calling tool: ${chalk.cyan(name)}`);
+      logger.info(`Calling tool: ${chalk.cyan(name)} with args: ${JSON.stringify(args, null, 2)}`);
       
       try {
         // Progressive disclosure: only load what's needed
+        logger.debug(`Loading tool: ${name}`);
         const tool = await this.disclosureGenerator.loadTool(name);
         
         if (!tool) {
+          logger.error(`Tool not found: ${name}`);
           throw new Error(`Tool not found: ${name}`);
         }
 
+        logger.debug(`Tool loaded successfully: ${name}, executing through orchestrator`);
+        
         // Orchestrate through MLX backend
-        const result = await this.orchestrator.executeTool(tool, args);
-        
+        const result = await this.orchestrator.executeTool(tool, args || {});
+
         logger.info(`Tool ${chalk.cyan(name)} completed successfully`);
-        
+
         return {
           content: [
             {
@@ -97,13 +122,14 @@ export class VibeThinkerMCPServer {
           ],
         };
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`Tool ${chalk.cyan(name)} failed:`, error);
-        
+
         return {
           content: [
             {
               type: 'text',
-              text: `Error executing tool ${name}: ${error.message}`,
+              text: `Error executing tool ${name}: ${errorMessage}`,
             },
           ],
           isError: true,

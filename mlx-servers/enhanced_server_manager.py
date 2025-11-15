@@ -18,6 +18,7 @@ import psutil
 import aiohttp
 from aiohttp import web
 import threading
+import statistics
 from concurrent.futures import ThreadPoolExecutor
 import json
 
@@ -165,25 +166,24 @@ class EnhancedServerManager:
                 '/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx-servers/optimized_mlx_server.py',
                 '--port', str(instance.port),
                 '--instance-id', str(instance.id),
-                '--batch-size', '6',  # Optimized batch size
-                '--max-concurrent', '12',  # Increased concurrency
-                '--quantization', 'q4'  # Q4 quantization for memory efficiency
+                '--batch-size', '6',
+                '--max-concurrent', '12',
+                '--quantization', 'none'  # Already pre-quantized to 8-bit
             ]
             
             # Start process with optimized settings
             instance.process = subprocess.Popen(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                preexec_fn=None  # For cross-platform compatibility
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                preexec_fn=None
             )
             
             instance.pid = instance.process.pid
             logger.info(f"Started instance {instance.id} on port {instance.port} (PID: {instance.pid})")
             
             # Wait for startup with timeout
-            startup_timeout = 30
+            startup_timeout = 600  # 600 seconds to match system timeout
             start_time = time.time()
             
             while time.time() - start_time < startup_timeout:
@@ -509,7 +509,7 @@ if __name__ == '__main__':
     # Enhanced configuration
     config = {
         'mlx_servers': {
-            'base_port': 8080,
+            'base_port': 8107,
             'instances': 27
         },
         'health_check_interval': 15,
@@ -519,4 +519,4 @@ if __name__ == '__main__':
     }
     
     # Run enhanced manager
-    web.run_app(create_enhanced_manager_app(config), host='0.0.0.0', port=8091)
+    web.run_app(create_enhanced_manager_app(config), host='0.0.0.0', port=8094)

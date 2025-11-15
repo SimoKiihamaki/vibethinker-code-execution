@@ -1,6 +1,6 @@
 {
     "mlx_servers": {
-        "base_port": 8080,
+        "base_port": 8107,
         "instances": 27
     },
     "health_check_interval": 15,

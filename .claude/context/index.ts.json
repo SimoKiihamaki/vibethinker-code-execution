@@ -1,0 +1,44 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/index.ts",
+  "context": {
+    "summary": ".TS file (166 lines, 4.6KB) - 10 imports, 1 exports, ~0 functions",
+    "dependencies": [
+      "@modelcontextprotocol/sdk/server/index.js",
+      "@modelcontextprotocol/sdk/server/stdio.js",
+      "winston",
+      "chalk",
+      "zod",
+      "./client.js",
+      "./orchestrator.js",
+      "./tools/registry.js",
+      "./progressive-disclosure.js"
+    ],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/client.js",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/orchestrator.js",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/tools/registry.js",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/progressive-disclosure.js"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-13T19:53:51.907Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mcp-server/src/index.ts",
+        "timestamp": "2025-11-13T19:53:51.916Z"
+      }
+    ],
+    "fileType": ".ts",
+    "complexity": "moderate",
+    "suggestions": [
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-13T19:53:51.916Z",
+  "expiresAt": "2025-11-13T20:53:51.916Z"
+}

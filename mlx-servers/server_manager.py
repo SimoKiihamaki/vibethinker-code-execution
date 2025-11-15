@@ -60,7 +60,7 @@ class MLXServerManager:
         mlx_config = self.config['mlx_servers']
         
         cmd = [
-            'python', '-m', 'mlx_lm.server',
+            'python3', '-m', 'mlx_lm.server',
             '--model', mlx_config['model_path'],
             '--port', str(instance.port),
             '--host', '0.0.0.0',

@@ -84,7 +84,7 @@ class OptimizedMLXModel:
     def _setup_optimization(self):
         """Setup performance optimizations"""
         # Enable memory growth to avoid OOM
-        mx.set_memory_growth(True)
+        mx.set_memory_limit(2 * 1024 * 1024 * 1024)  # 2GB limit
         
         # Set optimal thread count for CPU operations
         cpu_count = psutil.cpu_count(logical=False) or 4
@@ -111,8 +111,6 @@ class OptimizedMLXModel:
                 self.tokenizer,
                 prompt=prompt,
                 max_tokens=max_tokens,
-                temp=temperature,
-                top_p=top_p,
                 verbose=False
             )
             
@@ -450,17 +448,29 @@ async def create_optimized_mlx_server_app(config: Dict[str, Any]) -> web.Applica
     return await server.start_server()
 
 if __name__ == '__main__':
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Optimized MLX Server Instance')
+    parser.add_argument('--port', type=int, default=8080, help='Port to run the server on')
+    parser.add_argument('--instance-id', type=int, default=0, help='Instance ID')
+    parser.add_argument('--batch-size', type=int, default=6, help='Request batch size')
+    parser.add_argument('--max-concurrent', type=int, default=12, help='Max concurrent requests')
+    parser.add_argument('--quantization', type=str, default='none', help='Quantization type')
+    
+    args = parser.parse_args()
+    
     # Configuration for optimized server
     config = {
         'model': {
-            'path': '/Users/simo/Documents/trae_projects/vibethinker-code-execution/models/mixtral-8x7b-instruct-v0.1',
-            'quantization': 'q4'
+            'path': 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit',
+            'quantization': args.quantization
         },
-        'instance_id': 0,
-        'request_batch_size': 6,  # Increased batch size
+        'instance_id': args.instance_id,
+        'request_batch_size': args.batch_size,
         'batch_timeout': 0.03,    # Reduced timeout (30ms)
-        'max_concurrent_requests': 12,  # Increased concurrency
-        'port': 8080
+        'max_concurrent_requests': args.max_concurrent,
+        'port': args.port
     }
     
     # Run optimized server

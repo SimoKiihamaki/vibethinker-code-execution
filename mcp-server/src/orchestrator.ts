@@ -13,7 +13,11 @@ const logger = winston.createLogger({
       return `${chalk.gray(timestamp)} ${level} ${message}`;
     })
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console({
+      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
+    }),
+  ],
 });
 
 export interface ToolExecution {
@@ -58,13 +62,13 @@ export class Orchestrator {
     if (this.executionCache.has(cacheKey)) {
       const cached = this.executionCache.get(cacheKey)!;
       logger.debug(`Cache hit for tool: ${chalk.cyan(tool.name)}`);
-      
+
       return {
         ...cached,
         metadata: {
-          ...cached.metadata,
-          cacheHit: true,
           executionTime: Date.now() - startTime,
+          tokensUsed: cached.metadata?.tokensUsed || 0,
+          cacheHit: true,
         },
       };
     }

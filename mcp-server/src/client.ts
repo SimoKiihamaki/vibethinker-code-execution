@@ -13,7 +13,11 @@ const logger = winston.createLogger({
       return `${chalk.gray(timestamp)} ${level} ${message}`;
     })
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console({
+      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
+    }),
+  ],
 });
 
 const MLXServerConfig = z.object({
@@ -56,10 +60,10 @@ export class MLXClient {
 
   async initialize(): Promise<void> {
     logger.info('Initializing MLX client with 27 instances...');
-    
-    // Create 27 MLX instances on ports 8080-8106
+
+    // Create 27 MLX instances on ports 8107-8133
     for (let i = 0; i < 27; i++) {
-      const port = 8080 + i;
+      const port = 8107 + i;
       const instance: MLXInstance = {
         id: i,
         config: {
@@ -75,19 +79,32 @@ export class MLXClient {
           greedy: false,
           out_seq_length: 32768,
         },
-        healthy: true,
+        healthy: false, // Start as unhealthy, health check will validate
         lastUsed: Date.now(),
         requestCount: 0,
         responseTime: 0,
       };
-      
+
       this.instances.push(instance);
+    }
+
+    // Perform initial health check
+    await this.performHealthCheck();
+
+    const healthyCount = this.instances.filter(i => i.healthy).length;
+
+    if (healthyCount === 0) {
+      logger.warn(chalk.yellow('⚠️  No MLX instances are currently available'));
+      logger.warn(chalk.yellow('Tools requiring MLX backend will be disabled'));
+      logger.warn(chalk.yellow('Please start MLX instances on ports 8107-8133'));
+    } else if (healthyCount < this.instances.length) {
+      logger.warn(chalk.yellow(`⚠️  Only ${healthyCount}/${this.instances.length} MLX instances available`));
+    } else {
+      logger.info(chalk.green(`✅ All ${this.instances.length} MLX instances healthy`));
     }
 
     // Start health monitoring
     this.startHealthMonitoring();
-    
-    logger.info(chalk.green(`✅ Initialized ${this.instances.length} MLX instances`));
   }
 
   async generateCompletion(
@@ -96,9 +113,11 @@ export class MLXClient {
   ): Promise<string> {
     return this.queue.add(async () => {
       const instance = this.selectBestInstance();
-      
+
       if (!instance) {
-        throw new Error('No healthy MLX instances available');
+        const msg = 'No healthy MLX instances available. Please ensure MLX servers are running on ports 8107-8133.';
+        logger.error(msg);
+        throw new Error(msg);
       }
 
       const startTime = Date.now();
@@ -115,7 +134,7 @@ export class MLXClient {
             stream: false,
           },
           {
-            timeout: 30000, // 30 second timeout
+            timeout: 600000, // 600 second timeout
             headers: {
               'Content-Type': 'application/json',
             },
@@ -149,9 +168,11 @@ export class MLXClient {
   ): Promise<string> {
     return this.queue.add(async () => {
       const instance = this.selectBestInstance();
-      
+
       if (!instance) {
-        throw new Error('No healthy MLX instances available');
+        const msg = 'No healthy MLX instances available. Please ensure MLX servers are running on ports 8107-8133.';
+        logger.error(msg);
+        throw new Error(msg);
       }
 
       const startTime = Date.now();
@@ -168,7 +189,7 @@ export class MLXClient {
             stream: false,
           },
           {
-            timeout: 30000,
+            timeout: 600000,
             headers: {
               'Content-Type': 'application/json',
             },
@@ -212,37 +233,47 @@ export class MLXClient {
     });
   }
 
+  private async performHealthCheck(): Promise<void> {
+    const healthChecks = this.instances.map(async (instance) => {
+      try {
+        const response = await axios.get(
+          `http://${instance.config.host}:${instance.config.port}/health`,
+          { timeout: 600000 }
+        );
+
+        if (response.status === 200) {
+          instance.healthy = true;
+        } else {
+          instance.healthy = false;
+        }
+      } catch (error) {
+        instance.healthy = false;
+        logger.debug(`MLX instance ${instance.id} on port ${instance.config.port} not available`);
+      }
+    });
+
+    await Promise.all(healthChecks);
+  }
+
   private startHealthMonitoring(): void {
     this.healthCheckInterval = setInterval(async () => {
-      for (const instance of this.instances) {
-        try {
-          const response = await axios.get(
-            `http://${instance.config.host}:${instance.config.port}/health`,
-            { timeout: 5000 }
-          );
-          
-          if (response.status === 200) {
-            instance.healthy = true;
-          } else {
-            instance.healthy = false;
-          }
-        } catch (error) {
-          instance.healthy = false;
-          logger.warn(`MLX instance ${instance.id} health check failed`);
-        }
-      }
-      
+      await this.performHealthCheck();
+
       const healthyCount = this.instances.filter(i => i.healthy).length;
       logger.debug(`Health check: ${healthyCount}/${this.instances.length} instances healthy`);
-      
-    }, 30000); // Check every 30 seconds
+
+    }, 600000); // Check every 600 seconds
+  }
+
+  isAvailable(): boolean {
+    return this.instances.filter(i => i.healthy).length > 0;
   }
 
   getMetrics() {
     const healthyInstances = this.instances.filter(i => i.healthy).length;
     const totalRequests = this.instances.reduce((sum, i) => sum + i.requestCount, 0);
     const avgResponseTime = this.instances.reduce((sum, i) => sum + i.responseTime, 0) / this.instances.length;
-    
+
     return {
       healthyInstances,
       totalInstances: this.instances.length,
