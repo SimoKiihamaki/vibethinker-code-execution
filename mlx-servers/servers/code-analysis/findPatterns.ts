@@ -77,6 +77,15 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
 function buildfindPatternsPrompt(input: findPatternsInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Output only JSON per the schema below
+
 Tool: findPatterns
 Description: Find code patterns, anti-patterns, and best practice violations
 Category: code-analysis
@@ -85,14 +94,14 @@ Complexity: complex
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps
-
-Return results in JSON format.`;
+JSON schema:
+{
+  "summary": string,
+  "patterns": [ { "name": string, "count": number, "files": [string] } ],
+  "violations": [ { "rule": string, "file": string, "line": number, "details": string } ],
+  "actions": [string]
+}
+`;
 }
 
 /**

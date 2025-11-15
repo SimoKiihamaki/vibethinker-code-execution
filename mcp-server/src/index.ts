@@ -108,16 +108,22 @@ export class VibeThinkerMCPServer {
 
         logger.debug(`Tool loaded successfully: ${name}, executing through orchestrator`);
         
-        // Orchestrate through MLX backend
-        const result = await this.orchestrator.executeTool(tool, args || {});
-
-        logger.info(`Tool ${chalk.cyan(name)} completed successfully`);
-
+        const rawData = await this.toolRegistry.executeTool(name, args || {});
+        logger.info(`Tool ${chalk.cyan(name)} executed via registry`);
+        const response = {
+          success: true,
+          data: rawData,
+          metadata: {
+            executionTime: 0,
+            tokensUsed: 0,
+            cacheHit: false,
+          },
+        };
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(response, null, 2),
             },
           ],
         };

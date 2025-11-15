@@ -77,6 +77,15 @@ export async function analyzeFile(input: analyzeFileInput): Promise<analyzeFileR
 function buildanalyzeFilePrompt(input: analyzeFileInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Output only JSON per the schema below
+
 Tool: analyzeFile
 Description: Deep analysis of a single file including complexity, patterns, and issues
 Category: code-analysis
@@ -85,14 +94,14 @@ Complexity: moderate
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps
-
-Return results in JSON format.`;
+JSON schema:
+{
+  "summary": string,
+  "metrics": { "complexity": number, "lines": number, "functions": number },
+  "findings": [ { "type": string, "file": string, "line": number, "details": string } ],
+  "actions": [string]
+}
+`;
 }
 
 /**

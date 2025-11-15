@@ -77,6 +77,15 @@ export async function analyzeImports(input: analyzeImportsInput): Promise<analyz
 function buildanalyzeImportsPrompt(input: analyzeImportsInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Output only JSON per the schema below
+
 Tool: analyzeImports
 Description: Analyze import patterns and circular dependencies
 Category: repo-search
@@ -85,14 +94,15 @@ Complexity: complex
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps
-
-Return results in JSON format.`;
+JSON schema:
+{
+  "summary": string,
+  "metrics": { "filesAnalyzed": number, "imports": number, "cycles": number },
+  "cycles": [ { "files": [string], "details": string } ],
+  "patterns": [ { "name": string, "count": number } ],
+  "actions": [string]
+}
+`;
 }
 
 /**

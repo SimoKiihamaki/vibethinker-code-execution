@@ -241,6 +241,15 @@ export async function ${tool.name}(input: ${tool.name}Input): Promise<${tool.nam
 function build${tool.name}Prompt(input: ${tool.name}Input): string {
   return \`You are VibeThinker, an expert code analysis AI.
 
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
+
 Tool: ${tool.name}
 Description: ${tool.description}
 Category: ${tool.category}
@@ -249,14 +258,11 @@ Complexity: ${tool.complexity}
 Input:
 \${JSON.stringify(input, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps
-
-Return results in JSON format.\`;
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity\`;
 }
 
 /**

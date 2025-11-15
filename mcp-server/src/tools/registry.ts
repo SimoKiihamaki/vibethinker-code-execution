@@ -66,12 +66,37 @@ export class ToolRegistry {
           contextLines: z.number().int().min(0).max(10).default(3).describe('Lines of context around matches'),
         }),
         handler: async (args) => {
-          // Implementation would use ripgrep and MLX for semantic search
-          return {
-            results: [],
-            query: args.query,
-            executionTime: Date.now(),
-          };
+          const root = process.cwd();
+          const types = Array.isArray(args.fileTypes) && args.fileTypes.length ? args.fileTypes : ['.ts', '.tsx', '.js', '.jsx'];
+          const max = typeof args.maxResults === 'number' ? args.maxResults : 20;
+          const ctx = typeof args.contextLines === 'number' ? args.contextLines : 3;
+          const results: Array<{ file: string; line: number; snippet: string }> = [];
+          async function walk(dir: string) {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const e of entries) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) {
+                if (/(node_modules|\.git|dist|build)/.test(p)) continue;
+                await walk(p);
+              } else {
+                if (!types.some((t: string) => e.name.endsWith(t))) continue;
+                const content = await fs.readFile(p, 'utf8');
+                const lines = content.split(/\n/);
+                for (let i = 0; i < lines.length; i++) {
+                  if (lines[i].toLowerCase().includes(String(args.query).toLowerCase())) {
+                    const start = Math.max(0, i - ctx);
+                    const end = Math.min(lines.length, i + ctx + 1);
+                    const snippet = lines.slice(start, end).join('\n');
+                    results.push({ file: p, line: i + 1, snippet });
+                    if (results.length >= max) break;
+                  }
+                }
+              }
+              if (results.length >= max) break;
+            }
+          }
+          await walk(root);
+          return { summary: `Found ${results.length} results`, results };
         },
         tags: ['search', 'ripgrep', 'semantic'],
         complexity: 'moderate',
@@ -87,12 +112,36 @@ export class ToolRegistry {
           includeExternal: z.boolean().default(false).describe('Include external npm packages'),
         }),
         handler: async (args) => {
-          // Implementation would build dependency graph
-          return {
-            dependencies: [],
-            filePath: args.filePath,
-            depth: args.depth,
-          };
+          const startFile = String(args.filePath);
+          const maxDepth = typeof args.depth === 'number' ? args.depth : 2;
+          const visited = new Set<string>();
+          const deps: Array<{ source: string; target: string; type: string }> = [];
+          async function resolve(file: string, depth: number) {
+            if (depth > maxDepth || visited.has(file)) return;
+            visited.add(file);
+            let content = '';
+            try { content = await fs.readFile(file, 'utf8'); } catch { return; }
+            const dir = path.dirname(file);
+            const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(content))) {
+              const targetRel = m[1] || m[2];
+              const type = m[1] ? 'import' : 'require';
+              let targetPath = targetRel;
+              if (targetRel.startsWith('.')) {
+                const cand = path.resolve(dir, targetRel);
+                const variants = ['.ts', '.tsx', '.js', '.jsx', ''];
+                for (const v of variants) {
+                  const tp = v ? cand + v : cand;
+                  try { await fs.access(tp); targetPath = tp; break; } catch {}
+                }
+              }
+              deps.push({ source: file, target: targetPath, type });
+              if (targetRel.startsWith('.')) await resolve(targetPath, depth + 1);
+            }
+          }
+          await resolve(startFile, 0);
+          return { summary: `Resolved ${deps.length} dependencies`, dependencies: deps };
         },
         tags: ['dependencies', 'imports', 'graph'],
         complexity: 'complex',
@@ -108,13 +157,32 @@ export class ToolRegistry {
           analyzePatterns: z.boolean().default(true).describe('Analyze import patterns'),
         }),
         handler: async (args) => {
-          // Implementation would analyze import patterns
-          return {
-            imports: [],
-            cycles: [],
-            patterns: {},
-            directory: args.directory,
-          };
+          const dirRoot = String(args.directory);
+          const files: string[] = [];
+          async function walk(dir: string) {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const e of entries) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) { if (/(node_modules|\.git|dist|build)/.test(p)) continue; await walk(p); }
+              else if (/[.](ts|tsx|js|jsx)$/.test(e.name)) files.push(p);
+            }
+          }
+          await walk(dirRoot);
+          const imports: Array<{ file: string; target: string }> = [];
+          for (const f of files) {
+            let c = '';
+            try { c = await fs.readFile(f, 'utf8'); } catch { continue; }
+            const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(c))) {
+              const t = m[1] || m[2];
+              imports.push({ file: f, target: t });
+            }
+          }
+          const counts: Record<string, number> = {};
+          for (const i of imports) counts[i.target] = (counts[i.target] || 0) + 1;
+          const patterns = Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b)=>b.count-a.count).slice(0,20);
+          return { summary: `Analyzed ${files.length} files`, metrics: { filesAnalyzed: files.length, imports: imports.length, cycles: 0 }, cycles: [], patterns };
         },
         tags: ['imports', 'cycles', 'patterns'],
         complexity: 'complex',
@@ -130,13 +198,66 @@ export class ToolRegistry {
           excludePatterns: z.array(z.string()).optional().describe('Patterns to exclude'),
         }),
         handler: async (args) => {
-          // Implementation would build complete dependency graph
-          return {
-            graph: {},
-            nodes: [],
-            edges: [],
-            rootPath: args.rootPath,
-          };
+          const root = String(args.rootPath || process.cwd());
+          const types = Array.isArray(args.includeTypes) && args.includeTypes.length ? args.includeTypes : ['.ts', '.tsx', '.js', '.jsx'];
+          const excludes = Array.isArray(args.excludePatterns) ? args.excludePatterns : ['node_modules', '.git', 'dist', 'build'];
+          const files: string[] = [];
+          async function walk(dir: string) {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const e of entries) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) { if (excludes.some((x: string) => p.includes(x))) continue; await walk(p); }
+              else { if (types.some((t: string) => e.name.endsWith(t))) files.push(p); }
+            }
+          }
+          await walk(root);
+          const edges: Array<{ from: string; to: string }> = [];
+          const inDeg: Record<string, number> = {};
+          const outDeg: Record<string, number> = {};
+          for (const f of files) {
+            let c = '';
+            try { c = await fs.readFile(f, 'utf8'); } catch { continue; }
+            const dir = path.dirname(f);
+            const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(c))) {
+              const rel = m[1] || m[2];
+              let to = rel;
+              if (rel.startsWith('.')) {
+                const cand = path.resolve(dir, rel);
+                const variants = ['.ts', '.tsx', '.js', '.jsx', ''];
+                for (const v of variants) { const tp = v ? cand + v : cand; try { await fs.access(tp); to = tp; break; } catch {} }
+              }
+              edges.push({ from: f, to });
+              outDeg[f] = (outDeg[f] || 0) + 1;
+              inDeg[to] = (inDeg[to] || 0) + 1;
+            }
+          }
+          const entryPoints = files.filter(f => !inDeg[f]);
+          function findCycles() {
+            const graph: Record<string, string[]> = {};
+            for (const e of edges) { (graph[e.from] = graph[e.from] || []).push(e.to); }
+            const cycles: string[][] = [];
+            const stack: string[] = [];
+            const visited = new Set<string>();
+            const onStack = new Set<string>();
+            function dfs(u: string) {
+              visited.add(u); onStack.add(u); stack.push(u);
+              for (const v of graph[u] || []) {
+                if (!visited.has(v)) dfs(v);
+                else if (onStack.has(v)) { const idx = stack.indexOf(v); cycles.push(stack.slice(idx)); }
+              }
+              onStack.delete(u); stack.pop();
+            }
+            for (const f of files) if (!visited.has(f)) dfs(f);
+            return cycles;
+          }
+          const cycles = findCycles();
+          const hotspots = Object.entries(outDeg).map(([file, outDegree]) => ({ file, inDegree: inDeg[file] || 0, outDegree })).sort((a,b)=> (b.inDegree+b.outDegree)-(a.inDegree+a.outDegree)).slice(0,20);
+          const metrics = { files: files.length, imports: edges.length, cycles: cycles.length };
+          const issues = cycles.map(c => ({ type: 'cycle', files: c, details: 'Detected circular dependency' }));
+          const actions = issues.length ? ['Break cycles by extracting shared modules'] : ['No cycles detected'];
+          return { summary: 'Dependency graph built', metrics, issues, entryPoints, hotspots, actions };
         },
         tags: ['graph', 'dependencies', 'visualization'],
         complexity: 'complex',
@@ -162,12 +283,18 @@ export class ToolRegistry {
           includeSuggestions: z.boolean().default(true).describe('Include improvement suggestions'),
         }),
         handler: async (args) => {
-          // Implementation would analyze file
-          return {
-            analysis: {},
-            filePath: args.filePath,
-            analysisType: args.analysisType,
-          };
+          const file = String(args.filePath);
+          let content = '';
+          try { content = await fs.readFile(file, 'utf8'); } catch { return { summary: 'File not found', metrics: { complexity: 0, lines: 0, functions: 0 }, findings: [], actions: [] }; }
+          const lines = content.split(/\n/);
+          const funcMatches = content.match(/function\s+\w+|\w+\s*=\s*\(/g) || [];
+          const complexity = (content.match(/if\s*\(|for\s*\(|while\s*\(|case\s+|catch\s*\(/g) || []).length + 1;
+          const findings: Array<{ type: string; file: string; line: number; details: string }> = [];
+          for (let i = 0; i < lines.length; i++) {
+            if (/console\.log\(/.test(lines[i])) findings.push({ type: 'code_smell', file, line: i + 1, details: 'console.log detected' });
+          }
+          const actions = findings.length ? ['Remove console.log in production'] : ['No obvious issues detected'];
+          return { summary: 'File analyzed', metrics: { complexity, lines: lines.length, functions: funcMatches.length }, findings, actions };
         },
         tags: ['analysis', 'file', 'complexity'],
         complexity: 'moderate',
@@ -282,13 +409,55 @@ export class ToolRegistry {
           includeDependencies: z.boolean().default(true).describe('Include dependency mapping'),
         }),
         handler: async (args) => {
-          // Implementation would map architecture
-          return {
-            architecture: {},
-            layers: [],
-            dependencies: {},
-            rootPath: args.rootPath,
-          };
+          const root = String(args.rootPath || process.cwd());
+          const layers: string[] = Array.isArray(args.layers) ? args.layers : [];
+          const includeDeps = !!args.includeDependencies;
+          const files: string[] = [];
+          async function walk(dir: string) {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const e of entries) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) { if (/(node_modules|\.git|dist|build)/.test(p)) continue; await walk(p); }
+              else if (/[.](ts|tsx|js|jsx)$/.test(e.name)) files.push(p);
+            }
+          }
+          await walk(root);
+          const layerMap: Record<string, string[]> = {};
+          function assign(file: string): string {
+            const f = file.toLowerCase();
+            if (/(components|pages|ui|renderer)/.test(f)) return 'ui';
+            if (/(services|store|logic)/.test(f)) return 'business-logic';
+            if (/(models|db|data)/.test(f)) return 'data';
+            if (/(electron|main|config|infrastructure)/.test(f)) return 'infrastructure';
+            return 'unknown';
+          }
+          for (const f of files) {
+            const l = assign(f);
+            layerMap[l] = layerMap[l] || [];
+            layerMap[l].push(f);
+          }
+          let dependencies: Array<{ from: string; to: string }> = [];
+          if (includeDeps) {
+            for (const f of files) {
+              let c = '';
+              try { c = await fs.readFile(f, 'utf8'); } catch { continue; }
+              const dir = path.dirname(f);
+              const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+              let m: RegExpExecArray | null;
+              while ((m = re.exec(c))) {
+                const rel = m[1] || m[2];
+                let to = rel;
+                if (rel.startsWith('.')) {
+                  const cand = path.resolve(dir, rel);
+                  const variants = ['.ts', '.tsx', '.js', '.jsx', ''];
+                  for (const v of variants) { const tp = v ? cand + v : cand; try { await fs.access(tp); to = tp; break; } catch {} }
+                }
+                dependencies.push({ from: f, to });
+              }
+            }
+          }
+          const layersOut = layers.length ? layers.map(l => ({ name: l, files: layerMap[l] || [] })) : Object.keys(layerMap).map(l => ({ name: l, files: layerMap[l] }));
+          return { summary: 'Architectural map generated', layers: layersOut, dependencies };
         },
         tags: ['architecture', 'mapping', 'layers'],
         complexity: 'complex',

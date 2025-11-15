@@ -77,6 +77,15 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
 function buildanalyzeFunctionPrompt(input: analyzeFunctionInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Output only JSON per the schema below
+
 Tool: analyzeFunction
 Description: Analyze specific function or method for complexity and best practices
 Category: code-analysis
@@ -85,14 +94,15 @@ Complexity: moderate
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps
-
-Return results in JSON format.`;
+JSON schema:
+{
+  "summary": string,
+  "function": string,
+  "metrics": { "cyclomatic": number, "length": number, "params": number },
+  "findings": [ { "type": string, "line": number, "details": string } ],
+  "actions": [string]
+}
+`;
 }
 
 /**
