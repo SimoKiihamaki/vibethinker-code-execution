@@ -1,0 +1,14 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx-servers/enhanced_server_manager.py",
+  "context": {
+    "summary": "Error analyzing file: Cannot access 'match' before initialization",
+    "dependencies": [],
+    "relatedFiles": [],
+    "recentChanges": [],
+    "fileType": ".py",
+    "complexity": "very-complex",
+    "suggestions": []
+  },
+  "cachedAt": "2025-11-19T11:10:05.111Z",
+  "expiresAt": "2025-11-19T12:10:05.112Z"
+}

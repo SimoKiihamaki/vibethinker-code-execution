@@ -72,13 +72,13 @@ export class VibeThinkerMCPServer {
         tools: tools.map(tool => {
           // Convert Zod schema to JSON Schema
           const jsonSchemaDoc = zodToJsonSchema(tool.inputSchema, tool.name);
-          
+
           // Extract the actual schema definition (not the $ref document)
           const inputSchema = jsonSchemaDoc.definitions?.[tool.name] || jsonSchemaDoc;
-          
+
           // Generate a title from the tool name (capitalize and add spaces)
           const title = tool.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-          
+
           logger.debug(`Tool: ${tool.name}, Title: ${title}, Schema keys: ${Object.keys(inputSchema)}`);
 
           return {
@@ -93,31 +93,43 @@ export class VibeThinkerMCPServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      
+
       logger.info(`Calling tool: ${chalk.cyan(name)} with args: ${JSON.stringify(args, null, 2)}`);
-      
+
       try {
         // Progressive disclosure: only load what's needed
         logger.debug(`Loading tool: ${name}`);
         const tool = await this.disclosureGenerator.loadTool(name);
-        
+
         if (!tool) {
           logger.error(`Tool not found: ${name}`);
           throw new Error(`Tool not found: ${name}`);
         }
 
         logger.debug(`Tool loaded successfully: ${name}, executing through orchestrator`);
-        
-        // Orchestrate through MLX backend
-        const result = await this.orchestrator.executeTool(tool, args || {});
 
-        logger.info(`Tool ${chalk.cyan(name)} completed successfully`);
+        const startTime = Date.now();
+        const result = await this.toolRegistry.executeTool(name, args || {});
+        const executionTime = Date.now() - startTime;
 
+        // Handle both direct data return and structured return with metadata
+        const data = result.data || result;
+        const existingMetadata = result.metadata || {};
+
+        const response = {
+          success: true,
+          data: data,
+          metadata: {
+            executionTime: existingMetadata.executionTime || executionTime,
+            tokensUsed: existingMetadata.tokensUsed || Math.ceil(JSON.stringify(data).length / 4),
+            cacheHit: existingMetadata.cacheHit || false,
+          },
+        };
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(response, null, 2),
             },
           ],
         };
@@ -159,19 +171,19 @@ export class VibeThinkerMCPServer {
   async run() {
     try {
       logger.info(chalk.green('🚀 Starting VibeThinker MCP Server...'));
-      
+
       // Initialize MLX client
       await this.mlxClient.initialize();
-      
+
       // Generate progressive disclosure API
       await this.disclosureGenerator.generateAPI();
-      
+
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      
+
       logger.info(chalk.green('✅ VibeThinker MCP Server is running'));
       logger.info(chalk.blue('Waiting for Claude Code connections...'));
-      
+
     } catch (error) {
       logger.error('Failed to start server:', error);
       process.exit(1);

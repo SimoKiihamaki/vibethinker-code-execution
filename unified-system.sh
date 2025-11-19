@@ -235,6 +235,9 @@ install_system() {
     log "Copying system files..."
     cp -r "$SCRIPT_DIR/mlx-servers" "$INSTALL_DIR/"
     cp -r "$SCRIPT_DIR/mcp-server" "$INSTALL_DIR/"
+    # Copy shared servers code to target locations
+    cp -r "$SCRIPT_DIR/servers" "$INSTALL_DIR/mcp-server/"
+    cp -r "$SCRIPT_DIR/servers" "$INSTALL_DIR/mlx-servers/"
     cp -r "$SCRIPT_DIR/skills" "$INSTALL_DIR/"
     cp -r "$SCRIPT_DIR/hooks" "$INSTALL_DIR/"
     cp -r "$SCRIPT_DIR/scripts" "$INSTALL_DIR/"

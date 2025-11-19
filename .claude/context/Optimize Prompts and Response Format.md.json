@@ -1,0 +1,28 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/.trae/documents/Optimize Prompts and Response Format.md",
+  "context": {
+    "summary": ".MD file (67 lines, 3.1KB) - 10 headings",
+    "dependencies": [],
+    "relatedFiles": [],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "8b61532 feat(tools): implement core tool functionality and enforce JSON output",
+        "timestamp": "2025-11-19T11:14:16.213Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M \".trae/documents/Optimize Prompts and Response Format.md\"",
+        "timestamp": "2025-11-19T11:14:16.224Z"
+      }
+    ],
+    "fileType": ".md",
+    "complexity": "moderate",
+    "suggestions": [
+      "Check for broken links and formatting",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-19T11:14:16.224Z",
+  "expiresAt": "2025-11-19T12:14:16.224Z"
+}

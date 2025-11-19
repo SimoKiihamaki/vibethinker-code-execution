@@ -103,3 +103,6 @@ yarn.lock
 # Test artifacts
 test-results/
 junit.xml
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

@@ -1,0 +1,68 @@
+
+
+/**
+ * Estimate token count for text
+ */
+export function estimateTokens(text: string): number {
+    return Math.ceil(text.length / 4);
+}
+
+/**
+ * Parse and structure tool results
+ */
+export function parseToolResult(result: string, input: any): any {
+    try {
+        // Try to parse as JSON
+        const parsed = JSON.parse(result);
+        return parsed;
+    } catch {
+        // If not JSON, return structured text result
+        return {
+            result: result,
+            input: input,
+            timestamp: Date.now(),
+        };
+    }
+}
+
+/**
+ * Build context-aware prompt for a tool
+ */
+export function buildToolPrompt(
+    toolName: string,
+    description: string,
+    category: string,
+    complexity: string,
+    input: any,
+    outputSchema?: string
+): string {
+    const schemaSection = outputSchema ? `
+JSON schema:
+${outputSchema}
+` : `
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
+
+    return `You are VibeThinker, an expert code analysis AI.
+
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+${outputSchema ? '- Output only JSON per the schema below' : '- Keep natural-language responses under 180 words'}
+
+Tool: ${toolName}
+Description: ${description}
+Category: ${category}
+Complexity: ${complexity}
+
+Input:
+${JSON.stringify(input, null, 2)}
+${schemaSection}`;
+}

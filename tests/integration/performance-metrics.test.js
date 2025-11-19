@@ -8,13 +8,13 @@ const mockMLXClient = {
   repositories: {
     analyze: vi.fn(async (params) => {
       const startTime = Date.now();
-      
+
       // Simulate analysis with realistic metrics
       await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500)); // 0.5-2.5s
-      
+
       const endTime = Date.now();
       const processingTime = (endTime - startTime) / 1000;
-      
+
       return {
         status: 'completed',
         metrics: {
@@ -36,7 +36,7 @@ const mockMLXClient = {
       };
     })
   },
-  
+
   health: {
     check: vi.fn(async () => ({
       status: 'healthy',
@@ -53,7 +53,7 @@ const mockMLXClient = {
       }
     }))
   },
-  
+
   tools: {
     list: vi.fn(async () => ({
       tools: [
@@ -63,7 +63,7 @@ const mockMLXClient = {
         { name: 'context-builder', description: 'Build context' }
       ]
     })),
-    
+
     load: vi.fn(async (toolName) => ({
       status: 'loaded',
       toolName,
@@ -75,12 +75,12 @@ const mockMLXClient = {
 const TEST_REPO_PATH = path.join(process.cwd(), 'tests', 'test-repo');
 
 describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
-  
+
   beforeAll(async () => {
     // Create test repository
     await createTestRepository();
   });
-  
+
   afterAll(async () => {
     // Cleanup test repository
     try {
@@ -89,11 +89,11 @@ describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
       console.warn('Failed to cleanup test repository:', error.message);
     }
   });
-  
+
   describe('Performance Metrics Validation', () => {
     it('should achieve 19x faster repository analysis', async () => {
       const startTime = Date.now();
-      
+
       const analysis = await mockMLXClient.repositories.analyze({
         path: TEST_REPO_PATH,
         options: {
@@ -102,21 +102,21 @@ describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
           maxDepth: 3
         }
       });
-      
+
       const endTime = Date.now();
       const analysisTime = (endTime - startTime) / 1000;
-      
+
       // Traditional analysis would take ~45 seconds for similar repository
       const traditionalTime = 45;
       const speedup = traditionalTime / analysisTime;
-      
+
       console.log(`Analysis completed in ${analysisTime}s, speedup: ${speedup.toFixed(1)}x`);
-      
+
       expect(speedup).toBeGreaterThanOrEqual(15); // Allow some margin, minimum 15x speedup
       expect(analysisTime).toBeLessThan(10); // Should complete in under 10 seconds
       expect(analysis.metrics.processingTime).toBeLessThan(10);
     });
-    
+
     it('should achieve 98.7% token reduction', async () => {
       const analysis = await mockMLXClient.repositories.analyze({
         path: TEST_REPO_PATH,
@@ -125,35 +125,35 @@ describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
           securityScan: true
         }
       });
-      
+
       // Traditional analysis would use ~150k tokens
       const traditionalTokens = 150000;
       const actualTokens = analysis.metrics.tokensUsed;
       const tokenReduction = 1 - (actualTokens / traditionalTokens);
-      
+
       console.log(`Token usage: ${actualTokens} tokens, reduction: ${(tokenReduction * 100).toFixed(1)}%`);
-      
+
       expect(tokenReduction).toBeGreaterThanOrEqual(0.95); // At least 95% reduction
       expect(actualTokens).toBeLessThan(10000); // Should use less than 10k tokens
       expect(analysis.metrics.tokenReduction).toBeGreaterThanOrEqual(0.95);
     });
-    
+
     it('should maintain 95%+ cache hit rate', async () => {
       // First analysis to populate cache
       await mockMLXClient.repositories.analyze({
         path: TEST_REPO_PATH,
         options: { quickAnalysis: true }
       });
-      
+
       // Second analysis should hit cache
       const analysis = await mockMLXClient.repositories.analyze({
         path: TEST_REPO_PATH,
         options: { quickAnalysis: true }
       });
-      
+
       expect(analysis.metrics.cacheHitRate).toBeGreaterThanOrEqual(0.95);
     });
-    
+
     it('should maintain 1,485+ tokens/sec throughput', async () => {
       const analysis = await mockMLXClient.repositories.analyze({
         path: TEST_REPO_PATH,
@@ -162,130 +162,130 @@ describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
           securityScan: true
         }
       });
-      
+
       const throughput = analysis.metrics.tokensUsed / analysis.metrics.processingTime;
       console.log(`Throughput: ${throughput.toFixed(0)} tokens/sec`);
-      
-      expect(throughput).toBeGreaterThanOrEqual(1000); // Minimum 1000 tokens/sec
+
+      expect(throughput).toBeGreaterThanOrEqual(1000); // Minimum 1,000 tokens/sec target
     });
   });
-  
+
   describe('MLX Backend Performance', () => {
     it('should handle 27 concurrent MLX instances', async () => {
       const health = await mockMLXClient.health.check();
-      
+
       expect(health.components.mlxServers.total).toBe(27);
       expect(health.components.mlxServers.healthy).toBeGreaterThanOrEqual(25); // Allow for 2 unhealthy instances
     });
-    
+
     it('should handle concurrent requests efficiently', async () => {
       const concurrentRequests = 10;
       const startTime = Date.now();
-      
-      const requests = Array(concurrentRequests).fill().map((_, i) => 
+
+      const requests = Array(concurrentRequests).fill().map((_, i) =>
         mockMLXClient.repositories.analyze({
           path: TEST_REPO_PATH,
           options: { quickAnalysis: true }
         })
       );
-      
+
       const results = await Promise.all(requests);
       const endTime = Date.now();
-      
+
       const totalTime = (endTime - startTime) / 1000;
       const averageTime = totalTime / concurrentRequests;
-      
+
       console.log(`Processed ${concurrentRequests} concurrent requests in ${totalTime.toFixed(2)}s`);
       console.log(`Average time per request: ${averageTime.toFixed(2)}s`);
-      
+
       expect(results).toHaveLength(concurrentRequests);
       results.forEach(result => {
         expect(result.status).toBe('completed');
       });
     });
-    
+
     it('should maintain sub-10 second response time under load', async () => {
       const loadTest = async (requestCount) => {
         const startTime = Date.now();
-        
-        const requests = Array(requestCount).fill().map(() => 
+
+        const requests = Array(requestCount).fill().map(() =>
           mockMLXClient.repositories.analyze({
             path: TEST_REPO_PATH,
             options: { quickAnalysis: true }
           })
         );
-        
+
         await Promise.all(requests);
-        
+
         const endTime = Date.now();
         return (endTime - startTime) / 1000;
       };
-      
+
       // Test with increasing load
       const loads = [5, 10, 15, 20];
-      
+
       for (const load of loads) {
         const totalTime = await loadTest(load);
         const averageTime = totalTime / load;
-        
+
         console.log(`Load ${load} requests: total ${totalTime.toFixed(2)}s, average ${averageTime.toFixed(2)}s`);
-        
+
         expect(averageTime).toBeLessThan(10); // Each request should complete in under 10 seconds
       }
     });
   });
-  
+
   describe('Progressive Disclosure API', () => {
     it('should load tools on-demand with minimal overhead', async () => {
       const startTime = Date.now();
-      
+
       const tools = await mockMLXClient.tools.list();
-      
+
       const endTime = Date.now();
       const loadTime = (endTime - startTime) / 1000;
-      
+
       console.log(`Tool listing completed in ${loadTime.toFixed(2)}s`);
-      
+
       expect(tools.tools).toBeInstanceOf(Array);
       expect(tools.tools.length).toBeGreaterThanOrEqual(4); // At least 4 tools available
       expect(loadTime).toBeLessThan(2); // Should load in under 2 seconds
     });
-    
+
     it('should demonstrate token efficiency through progressive disclosure', async () => {
       // Get available tools
       const tools = await mockMLXClient.tools.list();
-      
+
       // Load a specific tool
       const toolName = tools.tools[0].name;
       const loadResult = await mockMLXClient.tools.load(toolName);
-      
+
       expect(loadResult.status).toBe('loaded');
       expect(loadResult.loadTime).toBeLessThan(1); // Should load in under 1 second
       expect(loadResult.toolName).toBe(toolName);
     });
   });
-  
+
   describe('System Health and Monitoring', () => {
     it('should provide comprehensive health status', async () => {
       const health = await mockMLXClient.health.check();
-      
+
       expect(health).toHaveProperty('status');
       expect(health).toHaveProperty('timestamp');
       expect(health).toHaveProperty('components');
       expect(health).toHaveProperty('metrics');
-      
+
       expect(health.components).toHaveProperty('mcpServer');
       expect(health.components).toHaveProperty('mlxServers');
       expect(health.components).toHaveProperty('cache');
     });
-    
+
     it('should provide detailed performance metrics', async () => {
       const health = await mockMLXClient.health.check();
-      
+
       expect(health.metrics).toHaveProperty('requestsPerSecond');
       expect(health.metrics).toHaveProperty('averageResponseTime');
       expect(health.metrics).toHaveProperty('tokenEfficiency');
-      
+
       expect(typeof health.metrics.requestsPerSecond).toBe('number');
       expect(typeof health.metrics.averageResponseTime).toBe('number');
       expect(health.metrics.tokenEfficiency).toBeGreaterThanOrEqual(0);
@@ -299,7 +299,7 @@ async function createTestRepository() {
   // Create directory structure
   await fs.mkdir(path.join(TEST_REPO_PATH, 'src'), { recursive: true });
   await fs.mkdir(path.join(TEST_REPO_PATH, 'tests'), { recursive: true });
-  
+
   // Create package.json
   const packageJson = {
     name: 'test-repo',
@@ -320,12 +320,12 @@ async function createTestRepository() {
       'eslint': '^8.0.0'
     }
   };
-  
+
   await fs.writeFile(
     path.join(TEST_REPO_PATH, 'package.json'),
     JSON.stringify(packageJson, null, 2)
   );
-  
+
   // Create source files
   const indexJs = `
 const express = require('express');
@@ -365,7 +365,7 @@ module.exports = UserService;
 `;
 
   await fs.writeFile(path.join(TEST_REPO_PATH, 'src', 'index.js'), indexJs);
-  
+
   // Create test files
   const testJs = `
 const UserService = require('../src/index');
@@ -401,7 +401,7 @@ describe('UserService', () => {
 `;
 
   await fs.writeFile(path.join(TEST_REPO_PATH, 'tests', 'index.test.js'), testJs);
-  
+
   // Create configuration files
   const eslintConfig = {
     "env": {
@@ -414,12 +414,12 @@ describe('UserService', () => {
       "no-console": "off"
     }
   };
-  
+
   await fs.writeFile(
     path.join(TEST_REPO_PATH, '.eslintrc.json'),
     JSON.stringify(eslintConfig, null, 2)
   );
-  
+
   // Create README
   const readme = `# Test Repository
 

@@ -608,27 +608,40 @@ async def create_optimized_app(config: Dict[str, Any]) -> web.Application:
     return app
 
 if __name__ == '__main__':
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Optimized MLX Load Balancer')
+    parser.add_argument('--config', type=str, default='optimized_lb_config.json', help='Path to configuration file')
+    parser.add_argument('--port', type=int, default=8090, help='Port to run the load balancer on')
+    args = parser.parse_args()
+
     # Load configuration
-    config = {
-        'mlx_servers': {
-            'base_port': 8080,
-            'instances': 27
-        },
-        'load_balancer': {
-            'health_check_timeout': 5,
-            'circuit_breaker': {
-                'failure_threshold': 5,
-                'recovery_timeout': 60
+    try:
+        with open(args.config, 'r') as f:
+            config = json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load config from {args.config}: {e}")
+        # Fallback config
+        config = {
+            'mlx_servers': {
+                'base_port': 8080,
+                'instances': 27
             },
-            'max_retries': 2,
-            'retry_delay': 500,
-            'max_batch_size': 8,
-            'max_batch_wait': 0.05
-        },
-        'performance': {
-            'request_timeout': 30000
+            'load_balancer': {
+                'health_check_timeout': 5,
+                'circuit_breaker': {
+                    'failure_threshold': 5,
+                    'recovery_timeout': 60
+                },
+                'max_retries': 2,
+                'retry_delay': 500,
+                'max_batch_size': 8,
+                'max_batch_wait': 0.05
+            },
+            'performance': {
+                'request_timeout': 30000
+            }
         }
-    }
     
     # Create and run optimized app
-    web.run_app(create_optimized_app(config), host='0.0.0.0', port=8090)
+    web.run_app(create_optimized_app(config), host='0.0.0.0', port=args.port)

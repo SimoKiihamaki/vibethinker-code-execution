@@ -84,8 +84,8 @@ export class Orchestrator {
       
       // Execute through MLX backend
       const mlxResult = await this.mlxClient.generateCompletion(prompt, {
-        temperature: 0.1, // Low temperature for consistent results
-        max_tokens: 4096,
+        temperature: 0.1,
+        max_tokens: tool.category === 'repo-search' || tool.category === 'code-analysis' ? 1024 : 2048,
       });
 
       // Parse and validate result
@@ -170,14 +170,16 @@ export class Orchestrator {
     args: Record<string, unknown>,
     context: Record<string, unknown>
   ): Promise<string> {
-    const systemPrompt = `You are VibeThinker, an expert code analysis AI. You provide precise, actionable insights about codebases using progressive disclosure patterns.
+    const systemPrompt = `You are VibeThinker, an expert code analysis AI.
 
-Key principles:
-1. **Progressive Disclosure**: Only reveal what's needed, when it's needed
-2. **Context Efficiency**: Minimize tokens while maximizing insight
-3. **Actionable Results**: Provide specific, implementable recommendations
-4. **Pattern Recognition**: Identify architectural patterns and anti-patterns
-5. **Dependency Awareness**: Understand impact of changes across the codebase
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
 
 Tool: ${tool.name}
 Description: ${tool.description}
@@ -188,12 +190,11 @@ ${JSON.stringify(context, null, 2)}
 Arguments:
 ${JSON.stringify(args, null, 2)}
 
-Generate a focused, efficient response that:
-- Uses minimal tokens while providing maximum insight
-- Follows progressive disclosure principles
-- Includes actionable recommendations
-- Identifies relevant patterns and dependencies
-- Provides clear next steps`;
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
 
     return systemPrompt;
   }
@@ -203,30 +204,83 @@ Generate a focused, efficient response that:
     mlxResult: string,
     args: Record<string, unknown>
   ): Promise<ToolResult> {
-    try {
-      // Try to parse as JSON first
-      const parsed = JSON.parse(mlxResult);
-      
-      if (typeof parsed === 'object' && parsed !== null) {
-        return {
-          success: true,
-          data: parsed,
-        };
-      }
-    } catch {
-      // If not valid JSON, treat as text result
+    const preprocessedForJson = this.sanitizeOutput(mlxResult, 'json');
+    const extractedJson = this.extractFirstJson(preprocessedForJson);
+    if (extractedJson) {
+      try {
+        const parsed = JSON.parse(extractedJson);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return {
+            success: true,
+            data: parsed,
+          };
+        }
+      } catch {}
     }
 
-    // For text results, structure them appropriately
+    const textResult = this.sanitizeOutput(mlxResult, 'text');
     return {
       success: true,
       data: {
-        result: mlxResult,
+        result: textResult,
         tool: tool.name,
         arguments: args,
         timestamp: Date.now(),
       },
     };
+  }
+
+  private sanitizeOutput(text: string, mode: 'json' | 'text'): string {
+    let t = text;
+    t = t.replace(/^[\s`]+|[\s`]+$/g, '');
+    t = t.replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''));
+    t = t
+      .split(/\n/)
+      .filter(line => 
+        !/for the user/i.test(line) &&
+        !/your response should/i.test(line) &&
+        !/^\s*your task:/i.test(line) &&
+        !/^\s*output format:/i.test(line) &&
+        !/^\s*output example:/i.test(line)
+      )
+      .join('\n');
+    t = t.replace(/\b(Wait|Hmm|Let me think|Thinking)[:,]?\b/gi, '');
+    t = t.replace(/[\t\r]+/g, ' ');
+    t = t.replace(/\s{2,}/g, ' ').trim();
+    if (mode === 'text') {
+      const words = t.split(/\s+/);
+      if (words.length > 180) {
+        t = words.slice(0, 180).join(' ');
+      }
+    }
+    return t;
+  }
+
+  private extractFirstJson(text: string): string | null {
+    const startIdx = text.search(/[\{\[]/);
+    if (startIdx === -1) return null;
+    const isArray = text[startIdx] === '[';
+    const open = isArray ? '[' : '{';
+    const close = isArray ? ']' : '}';
+    let depth = 0;
+    for (let i = startIdx; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === open) depth++;
+      else if (ch === close) depth--;
+      if (depth === 0) {
+        const candidate = text.slice(startIdx, i + 1).trim();
+        try {
+          JSON.parse(candidate);
+          return candidate;
+        } catch {
+          // continue searching for next JSON block
+          const nextStart = text.slice(i + 1).search(/[\{\[]/);
+          if (nextStart === -1) return null;
+          return this.extractFirstJson(text.slice(i + 1 + nextStart));
+        }
+      }
+    }
+    return null;
   }
 
   private generateCacheKey(toolName: string, args: Record<string, unknown>): string {
