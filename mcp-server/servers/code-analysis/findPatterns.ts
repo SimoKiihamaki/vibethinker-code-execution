@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { MLXClient } from '../../src/client.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -11,7 +11,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
 
 const findPatternsSchema = z.object({});
 
-export interface findPatternsInput extends z.infer<typeof findPatternsSchema> {}
+export interface findPatternsInput extends z.infer<typeof findPatternsSchema> { }
 
 export interface findPatternsResult {
   success: boolean;
@@ -30,25 +30,25 @@ export interface findPatternsResult {
 export async function findPatterns(input: findPatternsInput): Promise<findPatternsResult> {
   // Validate input
   const validatedInput = findPatternsSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = new MLXClient();
   await mlxClient.initialize();
-  
+
   // Build context-aware prompt
   const prompt = buildfindPatternsPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parsefindPatternsResult(result, validatedInput),
@@ -96,10 +96,10 @@ ${JSON.stringify(input, null, 2)}
 
 JSON schema:
 {
-  "summary": string,
-  "patterns": [ { "name": string, "count": number, "files": [string] } ],
-  "violations": [ { "rule": string, "file": string, "line": number, "details": string } ],
-  "actions": [string]
+  "summary": "string",
+  "patterns": [ { "name": "string", "count": "number", "files": ["string"] } ],
+  "violations": [ { "rule": "string", "file": "string", "line": "number", "details": "string" } ],
+  "actions": ["string"]
 }
 `;
 }

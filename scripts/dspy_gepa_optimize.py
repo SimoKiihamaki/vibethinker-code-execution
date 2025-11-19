@@ -136,7 +136,7 @@ def run_gepa(auto_level: str):
     reflection = configure_reflection_lm()
     gepa = GEPA(
         metric=metric,
-        auto=None,
+        auto_level=auto_level,
         track_stats=True,
         add_format_failure_as_feedback=True,
         reflection_lm=reflection,

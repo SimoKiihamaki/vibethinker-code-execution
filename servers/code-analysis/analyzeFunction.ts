@@ -9,9 +9,16 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: function, analysis, complexity
  */
 
-const analyzeFunctionSchema = z.object({});
+const analyzeFunctionSchema = z.object({
+  functionName: z.string().describe('Name of the function to analyze'),
+  filePath: z.string().describe('Path to the file containing the function'),
+  codeSnippet: z.string().optional().describe('The actual code of the function if available'),
+  lineNumber: z.number().optional().describe('Line number where the function starts'),
+  contextSize: z.number().optional().default(50).describe('Number of lines of context to include'),
+  focus: z.enum(['complexity', 'performance', 'security', 'readability', 'all']).optional().default('all').describe('Specific aspect to focus the analysis on')
+});
 
-export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
+export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> { }
 
 export interface analyzeFunctionResult {
   success: boolean;
@@ -30,25 +37,25 @@ export interface analyzeFunctionResult {
 export async function analyzeFunction(input: analyzeFunctionInput): Promise<analyzeFunctionResult> {
   // Validate input
   const validatedInput = analyzeFunctionSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = new MLXClient();
   await mlxClient.initialize();
-  
+
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseanalyzeFunctionResult(result, validatedInput),
