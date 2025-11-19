@@ -78,16 +78,15 @@ function buildsummarizeModulePrompt(input: summarizeModuleInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
-Mode: concise
+Mode: concise, plain text
 
-Output rules:
-- Output strictly valid JSON that parses with no trailing text
-- Do not use markdown, code fences, or explanations
-- Only include keys defined in the schema
-- Use double quotes for all keys and strings
-- Always include arrays for exports, dependencies, entryPoints, and actions (can be empty)
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
 
-Task: summarizeModule
+Tool: summarizeModule
 Description: Create concise summary of module functionality and purpose
 Category: context-building
 Complexity: moderate
@@ -95,33 +94,11 @@ Complexity: moderate
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Schema:
-{
-  "summary": "string",
-  "exports": ["string"],
-  "dependencies": ["string"],
-  "entryPoints": ["string"],
-  "actions": ["string"]
-}
-
-Example output:
-{
-  "summary": "Provides MLX client wrapper and health monitoring",
-  "exports": ["MLXClient"],
-  "dependencies": ["axios", "zod", "winston", "p-queue"],
-  "entryPoints": ["src/client.ts"],
-  "actions": ["Document configuration options", "Add unit tests for health checks"]
-}
-
-Quality rubric:
-- Summary is accurate and non-redundant
-- Exports, dependencies, and entryPoints reference real identifiers and paths
-- Actions are specific and helpful for maintainers
-
-Self-check:
-- Ensure the JSON parses and includes all required fields
- - Avoid speculative entries; prefer observable identifiers and imports
-`;
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
 }
 
 /**

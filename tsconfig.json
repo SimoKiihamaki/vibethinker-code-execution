@@ -26,15 +26,35 @@
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/mcp/*": ["src/mcp/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/skills/*": ["src/skills/*"],
-      "@/servers/*": ["src/servers/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/types/*": ["src/types/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@/mcp/*": [
+        "src/mcp/*"
+      ],
+      "@/hooks/*": [
+        "src/hooks/*"
+      ],
+      "@/skills/*": [
+        "src/skills/*"
+      ],
+      "@/servers/*": [
+        "src/servers/*"
+      ],
+      "@/utils/*": [
+        "src/utils/*"
+      ],
+      "@/types/*": [
+        "src/types/*"
+      ],
+      "@mlx-agentic-rag/sdk": [
+        "mcp-server/src/client.ts"
+      ]
     },
-    "types": ["node", "vite/client"]
+    "types": [
+      "node",
+      "vite/client"
+    ]
   },
   "include": [
     "src/**/*",

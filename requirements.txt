@@ -1,0 +1,8 @@
+mlx
+mlx-lm
+huggingface_hub
+aiohttp
+psutil
+flask
+flask-cors
+numpy

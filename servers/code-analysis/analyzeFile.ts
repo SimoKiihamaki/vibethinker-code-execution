@@ -78,17 +78,15 @@ function buildanalyzeFilePrompt(input: analyzeFileInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
-Mode: concise
+Mode: concise, plain text
 
-Output rules:
-- Output strictly valid JSON that parses with no trailing text
-- Do not use markdown, code fences, or explanations
-- Only include keys defined in the schema
-- Use double quotes for all keys and strings
-- If any numeric metric cannot be determined, set it to 0
-- Ensure arrays are present even when empty
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
 
-Task: analyzeFile
+Tool: analyzeFile
 Description: Deep analysis of a single file including complexity, patterns, and issues
 Category: code-analysis
 Complexity: moderate
@@ -96,31 +94,11 @@ Complexity: moderate
 Input:
 ${JSON.stringify(input, null, 2)}
 
-Schema:
-{
-  "summary": "string",
-  "metrics": { "complexity": "number", "lines": "number", "functions": "number" },
-  "findings": [ { "type": "string", "file": "string", "line": "number", "details": "string" } ],
-  "actions": ["string"]
-}
-
-Example output:
-{
-  "summary": "Concise overview of the file",
-  "metrics": { "complexity": 3.1, "lines": 250, "functions": 12 },
-  "findings": [ { "type": "code_smell", "file": "src/module.ts", "line": 42, "details": "Long function with nested conditionals" } ],
-  "actions": ["Refactor long functions", "Add unit tests for edge cases"]
-}
-
-Quality rubric:
-- Findings reference real file paths and plausible line numbers
-- Details are specific and actionable
-- Metrics align with summary and findings
-
-Self-check:
-- Ensure the JSON parses and includes all required fields
- - Ensure types match the schema exactly
-`;
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
 }
 
 /**

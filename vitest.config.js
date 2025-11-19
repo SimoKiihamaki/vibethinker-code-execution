@@ -7,6 +7,15 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 60000,
     hookTimeout: 30000,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/cypress/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+      '**/test-repo/**',
+      '**/test-repo-optimized/**'
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -27,7 +36,8 @@ export default defineConfig({
       '@mlx': resolve('./mlx-servers'),
       '@hooks': resolve('./hooks'),
       '@skills': resolve('./skills'),
-      '@tests': resolve('./tests')
+      '@tests': resolve('./tests'),
+      '@mlx-agentic-rag/sdk': resolve('./mcp-server/src/client.ts')
     }
   }
 });
