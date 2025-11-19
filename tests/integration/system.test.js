@@ -1,6 +1,6 @@
 
 // System Integration Tests for MLX-Powered Agentic RAG System
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';

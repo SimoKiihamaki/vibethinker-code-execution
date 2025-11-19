@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { MLXClient } from '../../mcp-server/src/client.js';
-import { buildToolPrompt, parseToolResult, estimateTokens } from '../utils.js';
 
 /**
  * Gather comprehensive context about code, files, and relationships
@@ -10,16 +9,9 @@ import { buildToolPrompt, parseToolResult, estimateTokens } from '../utils.js';
  * Tags: context, gathering, comprehensive
  */
 
-const gatherContextSchema = z.object({
-  query: z.string().describe('The user query or intent to gather context for'),
-  files: z.array(z.string()).optional().describe('Specific files to include in the context'),
-  maxDepth: z.number().optional().default(2).describe('Maximum depth for recursive dependency search'),
-  includeImports: z.boolean().optional().default(true).describe('Whether to follow and include imports'),
-  includeTypes: z.boolean().optional().default(true).describe('Whether to include type definitions'),
-  focus: z.enum(['broad', 'precise', 'dependencies', 'implementation']).optional().default('precise').describe('Strategy for context gathering')
-});
+const gatherContextSchema = z.object({});
 
-export interface gatherContextInput extends z.infer<typeof gatherContextSchema> { }
+export interface gatherContextInput extends z.infer<typeof gatherContextSchema> {}
 
 export interface gatherContextResult {
   success: boolean;
@@ -38,34 +30,28 @@ export interface gatherContextResult {
 export async function gatherContext(input: gatherContextInput): Promise<gatherContextResult> {
   // Validate input
   const validatedInput = gatherContextSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = new MLXClient();
   await mlxClient.initialize();
-
+  
   // Build context-aware prompt
-  const prompt = buildToolPrompt(
-    'gatherContext',
-    'Gather comprehensive context about code, files, and relationships',
-    'context-building',
-    'moderate',
-    validatedInput
-  );
-
+  const prompt = buildgatherContextPrompt(validatedInput);
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
-      data: parseToolResult(result, validatedInput),
+      data: parsegatherContextResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -83,4 +69,59 @@ export async function gatherContext(input: gatherContextInput): Promise<gatherCo
       },
     };
   }
+}
+
+/**
+ * Build context-aware prompt for gatherContext
+ */
+function buildgatherContextPrompt(input: gatherContextInput): string {
+  return `You are VibeThinker, an expert code analysis AI.
+
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
+
+Tool: gatherContext
+Description: Gather comprehensive context about code, files, and relationships
+Category: context-building
+Complexity: moderate
+
+Input:
+${JSON.stringify(input, null, 2)}
+
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
+}
+
+/**
+ * Parse and structure gatherContext results
+ */
+function parsegatherContextResult(result: string, input: gatherContextInput): any {
+  try {
+    // Try to parse as JSON
+    const parsed = JSON.parse(result);
+    return parsed;
+  } catch {
+    // If not JSON, return structured text result
+    return {
+      result: result,
+      input: input,
+      timestamp: Date.now(),
+    };
+  }
+}
+
+/**
+ * Estimate token count for text
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
 }

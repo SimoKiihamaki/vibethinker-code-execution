@@ -1,0 +1,47 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/tests/integration/system.test.js",
+  "context": {
+    "summary": ".JS file (785 lines, 23.7KB) - 4 imports, 0 exports, ~13 functions",
+    "dependencies": [
+      "vitest",
+      "child_process",
+      "path",
+      "fs",
+      "express",
+      "lodash",
+      "axios",
+      "../src/index",
+      "./src/index"
+    ],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/tests/src/index",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/tests/integration/src/index"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "c50cf22 Save progress before code review",
+        "timestamp": "2025-11-19T11:02:17.443Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-19T11:02:17.444Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M tests/integration/system.test.js",
+        "timestamp": "2025-11-19T11:02:17.453Z"
+      }
+    ],
+    "fileType": ".js",
+    "complexity": "very-complex",
+    "suggestions": [
+      "Consider breaking this file into smaller modules",
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling"
+    ]
+  },
+  "cachedAt": "2025-11-19T11:02:17.453Z",
+  "expiresAt": "2025-11-19T12:02:17.453Z"
+}

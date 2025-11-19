@@ -11,7 +11,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
 
 const mapArchitectureSchema = z.object({});
 
-export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> { }
+export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> {}
 
 export interface mapArchitectureResult {
   success: boolean;
@@ -30,28 +30,28 @@ export interface mapArchitectureResult {
 export async function mapArchitecture(input: mapArchitectureInput): Promise<mapArchitectureResult> {
   // Validate input
   const validatedInput = mapArchitectureSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = new MLXClient();
   await mlxClient.initialize();
-
+  
   // Build context-aware prompt
-  const prompt = buildMapArchitecturePrompt(validatedInput);
-
+  const prompt = buildmapArchitecturePrompt(validatedInput);
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
-      data: parseMapArchitectureResult(result, validatedInput),
+      data: parsemapArchitectureResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -74,7 +74,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
 /**
  * Build context-aware prompt for mapArchitecture
  */
-function buildMapArchitecturePrompt(input: mapArchitectureInput): string {
+function buildmapArchitecturePrompt(input: mapArchitectureInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -104,7 +104,7 @@ Output requirements:
 /**
  * Parse and structure mapArchitecture results
  */
-function parseMapArchitectureResult(result: string, input: mapArchitectureInput): any {
+function parsemapArchitectureResult(result: string, input: mapArchitectureInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);

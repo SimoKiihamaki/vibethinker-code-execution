@@ -11,7 +11,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
 
 const buildGraphSchema = z.object({});
 
-export interface buildGraphInput extends z.infer<typeof buildGraphSchema> { }
+export interface buildGraphInput extends z.infer<typeof buildGraphSchema> {}
 
 export interface buildGraphResult {
   success: boolean;
@@ -30,28 +30,28 @@ export interface buildGraphResult {
 export async function buildGraph(input: buildGraphInput): Promise<buildGraphResult> {
   // Validate input
   const validatedInput = buildGraphSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = new MLXClient();
   await mlxClient.initialize();
-
+  
   // Build context-aware prompt
-  const prompt = buildBuildGraphPrompt(validatedInput);
-
+  const prompt = buildbuildGraphPrompt(validatedInput);
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
-      data: parseBuildGraphResult(result, validatedInput),
+      data: parsebuildGraphResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -74,7 +74,7 @@ export async function buildGraph(input: buildGraphInput): Promise<buildGraphResu
 /**
  * Build context-aware prompt for buildGraph
  */
-function buildBuildGraphPrompt(input: buildGraphInput): string {
+function buildbuildGraphPrompt(input: buildGraphInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -104,7 +104,7 @@ Output requirements:
 /**
  * Parse and structure buildGraph results
  */
-function parseBuildGraphResult(result: string, input: buildGraphInput): any {
+function parsebuildGraphResult(result: string, input: buildGraphInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
