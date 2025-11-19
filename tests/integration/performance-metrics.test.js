@@ -166,7 +166,7 @@ describe('MLX-Powered Agentic RAG System Performance Metrics', () => {
       const throughput = analysis.metrics.tokensUsed / analysis.metrics.processingTime;
       console.log(`Throughput: ${throughput.toFixed(0)} tokens/sec`);
 
-      expect(throughput).to.be.at.least(500); // Minimum 500 tokens/sec
+      expect(throughput).to.be.at.least(1485); // Minimum 1,485 tokens/sec target
     });
   });
 

@@ -147,7 +147,7 @@ describe('Optimized MLX-Powered Agentic RAG System Performance Targets', () => {
 
       console.log(`🎯 Optimized token usage: ${actualTokens} tokens, reduction: ${(tokenReduction * 100).toFixed(1)}%`);
 
-      expect(tokenReduction).to.be.at.least(0.98); // At least 98% reductionarget
+      expect(tokenReduction).to.be.at.least(0.98); // At least 98% reduction target
       expect(actualTokens).toBeLessThan(3000); // Should use less than 3k tokens
       expect(analysis.metrics.tokenReduction).toBeGreaterThanOrEqual(0.987);
     });

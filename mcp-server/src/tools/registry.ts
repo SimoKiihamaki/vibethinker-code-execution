@@ -66,33 +66,50 @@ export class ToolRegistry {
           contextLines: z.number().int().min(0).max(10).default(3).describe('Lines of context around matches'),
         }),
         handler: async (args) => {
+          // Add empty query guard
+          const query = String(args.query).trim();
+          if (!query) {
+            return { matches: [] };
+          }
+
           const root = process.cwd();
           const types = Array.isArray(args.fileTypes) && args.fileTypes.length ? args.fileTypes : ['.ts', '.tsx', '.js', '.jsx'];
           const max = typeof args.maxResults === 'number' ? args.maxResults : 20;
           const ctx = typeof args.contextLines === 'number' ? args.contextLines : 3;
           const results: Array<{ file: string; line: number; snippet: string }> = [];
+
           async function walk(dir: string) {
-            const entries = await fs.readdir(dir, { withFileTypes: true });
-            for (const e of entries) {
-              const p = path.join(dir, e.name);
-              if (e.isDirectory()) {
-                if (/(node_modules|\.git|dist|build)/.test(p)) continue;
-                await walk(p);
-              } else {
-                if (!types.some((t: string) => e.name.endsWith(t))) continue;
-                const content = await fs.readFile(p, 'utf8');
-                const lines = content.split(/\n/);
-                for (let i = 0; i < lines.length; i++) {
-                  if (lines[i].toLowerCase().includes(String(args.query).toLowerCase())) {
-                    const start = Math.max(0, i - ctx);
-                    const end = Math.min(lines.length, i + ctx + 1);
-                    const snippet = lines.slice(start, end).join('\n');
-                    results.push({ file: p, line: i + 1, snippet });
-                    if (results.length >= max) break;
+            try {
+              const entries = await fs.readdir(dir, { withFileTypes: true });
+              for (const e of entries) {
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) {
+                  if (/(node_modules|\.git|dist|build)/.test(p)) continue;
+                  await walk(p);
+                } else {
+                  if (!types.some((t: string) => e.name.endsWith(t))) continue;
+                  try {
+                    const content = await fs.readFile(p, 'utf8');
+                    const lines = content.split(/\n/);
+                    for (let i = 0; i < lines.length; i++) {
+                      if (lines[i].toLowerCase().includes(query.toLowerCase())) {
+                        const start = Math.max(0, i - ctx);
+                        const end = Math.min(lines.length, i + ctx + 1);
+                        const snippet = lines.slice(start, end).join('\n');
+                        results.push({ file: p, line: i + 1, snippet });
+                        if (results.length >= max) break;
+                      }
+                    }
+                  } catch (fileError) {
+                    // Skip unreadable files and continue
+                    continue;
                   }
                 }
+                if (results.length >= max) break;
               }
-              if (results.length >= max) break;
+            } catch (dirError) {
+              // Skip unreadable directories and continue
+              return;
             }
           }
           await walk(root);
@@ -114,6 +131,7 @@ export class ToolRegistry {
         handler: async (args) => {
           const startFile = String(args.filePath);
           const maxDepth = typeof args.depth === 'number' ? args.depth : 2;
+          const includeExternal = typeof args.includeExternal === 'boolean' ? args.includeExternal : false;
           const visited = new Set<string>();
           const deps: Array<{ source: string; target: string; type: string }> = [];
           async function resolve(file: string, depth: number) {
@@ -135,9 +153,14 @@ export class ToolRegistry {
                   const tp = v ? cand + v : cand;
                   try { await fs.access(tp); targetPath = tp; break; } catch {}
                 }
+                deps.push({ source: file, target: targetPath, type });
+                await resolve(targetPath, depth + 1);
+              } else {
+                // Only include external dependencies if flag is set
+                if (includeExternal) {
+                  deps.push({ source: file, target: targetPath, type });
+                }
               }
-              deps.push({ source: file, target: targetPath, type });
-              if (targetRel.startsWith('.')) await resolve(targetPath, depth + 1);
             }
           }
           await resolve(startFile, 0);
@@ -158,31 +181,114 @@ export class ToolRegistry {
         }),
         handler: async (args) => {
           const dirRoot = String(args.directory);
+          const detectCycles = typeof args.detectCycles === 'boolean' ? args.detectCycles : true;
+          const analyzePatterns = typeof args.analyzePatterns === 'boolean' ? args.analyzePatterns : true;
           const files: string[] = [];
+          const fileMap = new Map<string, Set<string>>();
+
           async function walk(dir: string) {
-            const entries = await fs.readdir(dir, { withFileTypes: true });
-            for (const e of entries) {
-              const p = path.join(dir, e.name);
-              if (e.isDirectory()) { if (/(node_modules|\.git|dist|build)/.test(p)) continue; await walk(p); }
-              else if (/[.](ts|tsx|js|jsx)$/.test(e.name)) files.push(p);
+            try {
+              const entries = await fs.readdir(dir, { withFileTypes: true });
+              for (const e of entries) {
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) {
+                  if (/(node_modules|\.git|dist|build)/.test(p)) continue;
+                  await walk(p);
+                }
+                else if (/[.](ts|tsx|js|jsx)$/.test(e.name)) files.push(p);
+              }
+            } catch (err) {
+              // Skip unreadable directories
             }
           }
           await walk(dirRoot);
-          const imports: Array<{ file: string; target: string }> = [];
+
+          // Build import graph
           for (const f of files) {
             let c = '';
             try { c = await fs.readFile(f, 'utf8'); } catch { continue; }
             const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+            const deps: Set<string> = new Set();
             let m: RegExpExecArray | null;
             while ((m = re.exec(c))) {
               const t = m[1] || m[2];
-              imports.push({ file: f, target: t });
+              if (t.startsWith('.')) { // Only track relative imports for cycle detection
+                deps.add(t);
+              }
+            }
+            fileMap.set(f, deps);
+          }
+
+          // Detect cycles if requested
+          const cycles: Array<Array<string>> = [];
+          if (detectCycles) {
+            const visited = new Set<string>();
+            const recursionStack = new Set<string>();
+            const pathMap = new Map<string, string>();
+
+            function dfs(node: string, path: string[]): boolean {
+              if (recursionStack.has(node)) {
+                // Found a cycle
+                const cycleStart = path.indexOf(node);
+                if (cycleStart !== -1) {
+                  cycles.push(path.slice(cycleStart));
+                }
+                return true;
+              }
+              if (visited.has(node)) return false;
+
+              visited.add(node);
+              recursionStack.add(node);
+              path.push(node);
+
+              const deps = fileMap.get(node);
+              if (deps) {
+                for (const dep of deps) {
+                  const targetFile = path.resolve(path.dirname(node), dep);
+                  // Find actual file in our list
+                  const actualFile = files.find(f =>
+                    f === targetFile || f === targetFile + '.ts' || f === targetFile + '.tsx' ||
+                    f === targetFile + '.js' || f === targetFile + '.jsx'
+                  );
+                  if (actualFile) {
+                    dfs(actualFile, path);
+                  }
+                }
+              }
+
+              recursionStack.delete(node);
+              path.pop();
+              return false;
+            }
+
+            for (const file of files) {
+              if (!visited.has(file)) {
+                dfs(file, []);
+              }
             }
           }
-          const counts: Record<string, number> = {};
-          for (const i of imports) counts[i.target] = (counts[i.target] || 0) + 1;
-          const patterns = Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a,b)=>b.count-a.count).slice(0,20);
-          return { summary: `Analyzed ${files.length} files`, metrics: { filesAnalyzed: files.length, imports: imports.length, cycles: 0 }, cycles: [], patterns };
+
+          // Analyze patterns if requested
+          const patterns: Array<{ name: string; count: number }> = [];
+          if (analyzePatterns) {
+            const allImports: string[] = [];
+            for (const deps of fileMap.values()) {
+              allImports.push(...Array.from(deps));
+            }
+            const counts: Record<string, number> = {};
+            for (const imp of allImports) {
+              counts[imp] = (counts[imp] || 0) + 1;
+            }
+            patterns.push(...Object.entries(counts).map(([name, count]) => ({ name, count }))
+              .sort((a,b) => b.count - a.count).slice(0, 20));
+          }
+
+          return {
+            summary: `Analyzed ${files.length} files`,
+            metrics: { filesAnalyzed: files.length, imports: Array.from(fileMap.values()).reduce((sum, deps) => sum + deps.size, 0), cycles: cycles.length },
+            cycles,
+            patterns
+          };
         },
         tags: ['imports', 'cycles', 'patterns'],
         complexity: 'complex',
@@ -284,17 +390,69 @@ export class ToolRegistry {
         }),
         handler: async (args) => {
           const file = String(args.filePath);
+          const analysisType = typeof args.analysisType === 'string' ? args.analysisType : 'full';
+          const includeSuggestions = typeof args.includeSuggestions === 'boolean' ? args.includeSuggestions : true;
+
           let content = '';
           try { content = await fs.readFile(file, 'utf8'); } catch { return { summary: 'File not found', metrics: { complexity: 0, lines: 0, functions: 0 }, findings: [], actions: [] }; }
           const lines = content.split(/\n/);
           const funcMatches = content.match(/function\s+\w+|\w+\s*=\s*\(/g) || [];
-          const complexity = (content.match(/if\s*\(|for\s*\(|while\s*\(|case\s+|catch\s*\(/g) || []).length + 1;
+
+          let complexity = 1; // Base complexity
           const findings: Array<{ type: string; file: string; line: number; details: string }> = [];
-          for (let i = 0; i < lines.length; i++) {
-            if (/console\.log\(/.test(lines[i])) findings.push({ type: 'code_smell', file, line: i + 1, details: 'console.log detected' });
+
+          // Run analysis based on type
+          if (analysisType === 'complexity' || analysisType === 'full') {
+            complexity = (content.match(/if\s*\(|for\s*\(|while\s*\(|case\s+|catch\s*\(/g) || []).length + 1;
           }
-          const actions = findings.length ? ['Remove console.log in production'] : ['No obvious issues detected'];
-          return { summary: 'File analyzed', metrics: { complexity, lines: lines.length, functions: funcMatches.length }, findings, actions };
+
+          if (analysisType === 'patterns' || analysisType === 'full') {
+            // Analyze code patterns
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line.includes('console.log')) {
+                findings.push({ type: 'code_smell', file, line: i + 1, details: 'console.log detected' });
+              }
+              if (line.includes('TODO:') || line.includes('FIXME:')) {
+                findings.push({ type: 'todo_comment', file, line: i + 1, details: 'TODO/FIXME comment found' });
+              }
+            }
+          }
+
+          if (analysisType === 'issues' || analysisType === 'full') {
+            // Analyze potential issues
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (/console\.log\(/.test(line)) {
+                findings.push({ type: 'code_smell', file, line: i + 1, details: 'console.log detected' });
+              }
+              if (/var\s+/.test(line)) {
+                findings.push({ type: 'legacy_syntax', file, line: i + 1, details: 'var usage detected' });
+              }
+            }
+          }
+
+          // Generate actions based on suggestions flag
+          const actions = includeSuggestions && findings.length ?
+            findings.map(f => {
+              if (f.type === 'code_smell') return 'Remove console.log in production';
+              if (f.type === 'legacy_syntax') return 'Consider using const/let instead of var';
+              if (f.type === 'todo_comment') return 'Address TODO/FIXME comments';
+              return 'Review identified issues';
+            }).filter((v, i, a) => a.indexOf(v) === i) // Remove duplicates
+            : [];
+
+          return {
+            summary: 'File analyzed',
+            metrics: {
+              complexity,
+              lines: lines.length,
+              functions: funcMatches.length,
+              findings: findings.length
+            },
+            findings,
+            actions
+          };
         },
         tags: ['analysis', 'file', 'complexity'],
         complexity: 'moderate',

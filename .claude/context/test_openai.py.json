@@ -1,14 +1,14 @@
 {
-  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/scripts/health_check.py",
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/scripts/test_openai.py",
   "context": {
     "summary": "Error analyzing file: Cannot access 'match' before initialization",
     "dependencies": [],
     "relatedFiles": [],
     "recentChanges": [],
     "fileType": ".py",
-    "complexity": "complex",
+    "complexity": "simple",
     "suggestions": []
   },
-  "cachedAt": "2025-11-19T11:10:33.891Z",
-  "expiresAt": "2025-11-19T12:10:33.892Z"
+  "cachedAt": "2025-11-19T11:10:19.464Z",
+  "expiresAt": "2025-11-19T12:10:19.464Z"
 }

@@ -10,12 +10,12 @@
 - Tool-specific builders (e.g., buildGraph): `mcp-server/servers/repo-search/buildGraph.ts`
 
 ## Prompt Standards
-1. In `orchestrator.ts` (system prompt at ~lines 168–199):
+1. In `orchestrator.ts` (system prompt initialization section):
    - Add explicit style constraints: plain text only, no markdown/backticks, no meta commentary, no reasoning steps.
    - Cap output length (e.g., ~120–180 words for natural-language mode).
-2. In `progressive-disclosure.ts` (template at ~lines 238–260):
+2. In `progressive-disclosure.ts` (response format template section):
    - Inject the same style constraints per tool.
-   - Replace generic “Return results in JSON format.” with an explicit schema block per tool when JSON is required.
+   - Replace generic "Return results in JSON format." with an explicit schema block per tool when JSON is required.
 
 ## Response Format Policies
 - Natural language mode:
@@ -42,14 +42,14 @@
 - Implement `sanitizeOutput` in `orchestrator.ts` before returning results:
   - Strip backticks and fenced blocks
   - Remove lines that match meta/prompts (e.g., “Your response should be…”, “for the user”) 
-  - Drop “Wait/Let me think/Hmm” style phrases
+  - Drop "Wait," "Let me think," "Hmm" — style phrases
   - Enforce plain text; collapse whitespace; respect word cap
 - If JSON mode: detect/parse JSON; bypass length cap; validate schema and reject extras
 
 ## Tool Builder Updates
-- In `mcp-server/servers/repo-search/buildGraph.ts` (~lines 74–96):
+- In `mcp-server/servers/repo-search/buildGraph.ts` (prompt builder section):
   - Replace generic directive with explicit dependency-graph schema above
-  - Add: “Return only JSON, no markdown or fences, no commentary.”
+  - Add: "Return only JSON, no markdown or fences, no commentary."
 - Mirror changes across other builders to use `{ summary, findings[], actions[] }` where relevant.
 
 ## Leakage Prevention

@@ -1,7 +1,7 @@
 ## Why DSPy + GEPA
 - GEPA evolves prompt text using reflective feedback, improving program quality with few rollouts [1][3][4].
 - Works without large labeled datasets by leveraging textual feedback in metrics; ideal for our JSON-structured tools [1][5].
-- Can be run offline to produce improved prompts, or online as a batch inference-time search to pick best outputs per task [1].
+- GEPA can be run offline to produce improved prompts, or online as a batch inference-time search to pick best outputs per task [1].
 
 ## Current State (Targets)
 - MLX invocation client centralizes completions and chat calls with instance health and metrics: `mcp-server/src/client.ts:110` (generateCompletion) and `mcp-server/src/client.ts:165` (generateChatCompletion).

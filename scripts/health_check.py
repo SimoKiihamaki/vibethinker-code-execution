@@ -32,7 +32,6 @@ class HealthChecker:
     async def check_load_balancer(self) -> Dict[str, any]:
         """Check load balancer health"""
         try:
-            lb_config = self.config["load_balancer"]
             host = self.config["mlx_servers"].get("host", "localhost")
             port = self.config["mlx_servers"].get("load_balancer_port", 8000)
 
