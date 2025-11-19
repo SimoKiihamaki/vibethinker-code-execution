@@ -224,7 +224,6 @@ export class ToolRegistry {
           if (detectCycles) {
             const visited = new Set<string>();
             const recursionStack = new Set<string>();
-            const pathMap = new Map<string, string>();
 
             function dfs(node: string, path: string[]): boolean {
               if (recursionStack.has(node)) {

@@ -167,9 +167,9 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
 
       console.log(`Analysis completed in ${analysisTime} s, speedup: ${speedup} x`);
 
-      expect(speedup).to.be.at.least(15); // Allow some margin, minimum 15x speedup
-      expect(analysisTime).to.be.below(10); // Should complete in under 10 seconds
-      expect(analysis.metrics.processingTime).to.be.below(10);
+      expect(speedup).toBeGreaterThanOrEqual(15); // Allow some margin, minimum 15x speedup
+      expect(analysisTime).toBeLessThan(10); // Should complete in under 10 seconds
+      expect(analysis.metrics.processingTime).toBeLessThan(10);
     });
 
     it('should achieve 98.7% token reduction', async function () {
@@ -188,9 +188,9 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
 
       console.log(`Token usage: ${actualTokens} tokens, reduction: ${(tokenReduction * 100).toFixed(1)}% `);
 
-      expect(tokenReduction).to.be.at.least(0.95); // At least 95% reduction
-      expect(actualTokens).to.be.below(10000); // Should use less than 10k tokens
-      expect(analysis.metrics.tokenReduction).to.be.at.least(0.95);
+      expect(tokenReduction).toBeGreaterThanOrEqual(0.95); // At least 95% reduction
+      expect(actualTokens).toBeLessThan(10000); // Should use less than 10k tokens
+      expect(analysis.metrics.tokenReduction).toBeGreaterThanOrEqual(0.95);
     });
 
     it('should maintain 95%+ cache hit rate', async function () {
@@ -206,7 +206,7 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
         options: { quickAnalysis: true }
       });
 
-      expect(analysis.metrics.cacheHitRate).to.be.at.least(0.95);
+      expect(analysis.metrics.cacheHitRate).toBeGreaterThanOrEqual(0.95);
     });
 
     it('should maintain 1,485+ tokens/sec throughput', async function () {
@@ -221,7 +221,7 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
       const throughput = analysis.metrics.tokensUsed / analysis.metrics.processingTime;
       console.log(`Throughput: ${throughput.toFixed(0)} tokens / sec`);
 
-      expect(throughput).to.be.at.least(1000); // Minimum 1000 tokens/sec
+      expect(throughput).toBeGreaterThanOrEqual(1000); // Minimum 1000 tokens/sec
     });
   });
 
@@ -229,8 +229,8 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
     it('should handle 27 concurrent MLX instances', async function () {
       const health = await mlxClient.health.check();
 
-      expect(health.components.mlxServers.total).to.equal(27);
-      expect(health.components.mlxServers.healthy).to.be.at.least(25); // Allow for 2 unhealthy instances
+      expect(health.components.mlxServers.total).toBe(27);
+      expect(health.components.mlxServers.healthy).toBeGreaterThanOrEqual(25); // Allow for 2 unhealthy instances
     });
 
     it('should handle concurrent requests efficiently', async function () {
@@ -253,9 +253,9 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
       console.log(`Processed ${concurrentRequests} concurrent requests in ${totalTime} s`);
       console.log(`Average time per request: ${averageTime.toFixed(2)} s`);
 
-      expect(results).to.have.lengthOf(concurrentRequests);
+      expect(results).toHaveLength(concurrentRequests);
       results.forEach(result => {
-        expect(result.status).to.equal('completed');
+        expect(result.status).toBe('completed');
       });
     });
 
@@ -285,7 +285,7 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
 
         console.log(`Load ${load} requests: total ${totalTime.toFixed(2)} s, average ${averageTime.toFixed(2)} s`);
 
-        expect(averageTime).to.be.below(10); // Each request should complete in under 10 seconds
+        expect(averageTime).toBeLessThan(10); // Each request should complete in under 10 seconds
       }
     });
   });
@@ -301,9 +301,9 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
 
       console.log(`Tool listing completed in ${loadTime} s`);
 
-      expect(tools.tools).to.be.an('array');
-      expect(tools.tools.length).to.be.at.least(4); // At least 4 tools available
-      expect(loadTime).to.be.below(2); // Should load in under 2 seconds
+      expect(Array.isArray(tools.tools)).toBe(true);
+      expect(tools.tools.length).toBeGreaterThanOrEqual(4); // At least 4 tools available
+      expect(loadTime).toBeLessThan(2); // Should load in under 2 seconds
     });
 
     it('should demonstrate token efficiency through progressive disclosure', async function () {
@@ -314,9 +314,9 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
       const toolName = tools.tools[0].name;
       const loadResult = await mlxClient.tools.load(toolName);
 
-      expect(loadResult.status).to.equal('loaded');
-      expect(loadResult.loadTime).to.be.below(1); // Should load in under 1 second
-      expect(loadResult.toolName).to.equal(toolName);
+      expect(loadResult.status).toBe('loaded');
+      expect(loadResult.loadTime).toBeLessThan(1); // Should load in under 1 second
+      expect(loadResult.toolName).toBe(toolName);
     });
   });
 
@@ -341,10 +341,10 @@ describe('MLX-Powered Agentic RAG System Integration Tests', function () {
         }
       });
 
-      expect(generation.code.main).to.be.a('string');
-      expect(generation.code.tests).to.be.a('string');
-      expect(generation.code.documentation).to.be.a('string');
-      expect(generation.metrics.qualityScore).to.be.at.least(8); // Quality score should be 8+
+      expect(typeof generation.code.main).toBe('string');
+      expect(typeof generation.code.tests).toBe('string');
+      expect(typeof generation.code.documentation).toBe('string');
+      expect(generation.metrics.qualityScore).toBeGreaterThanOrEqual(8); // Quality score should be 8+
     });
 
     it('should perform intelligent code editing with validation', async function () {
@@ -368,10 +368,10 @@ function oldFunction(data) {
         }
       });
 
-      expect(editResult.changes).to.be.an('array');
-      expect(editResult.changes.length).to.be.at.least(1);
-      expect(editResult.validation.syntaxCheck).to.equal('passed');
-      expect(editResult.validation.testsPass).to.be.true;
+      expect(Array.isArray(editResult.changes)).toBe(true);
+      expect(editResult.changes.length).toBeGreaterThanOrEqual(1);
+      expect(editResult.validation.syntaxCheck).toBe('passed');
+      expect(editResult.validation.testsPass).toBe(true);
 
       // Cleanup
       await fs.unlink(testFile);
@@ -389,11 +389,11 @@ function oldFunction(data) {
         }
       });
 
-      expect(analysis.dependencies.total).to.be.a('number');
-      expect(analysis.vulnerabilities).to.be.an('array');
-      expect(analysis.metrics.securityScore).to.be.a('number');
-      expect(analysis.metrics.securityScore).to.be.at.least(0);
-      expect(analysis.metrics.securityScore).to.be.at.most(10);
+      expect(typeof analysis.dependencies.total).toBe('number');
+      expect(Array.isArray(analysis.vulnerabilities)).toBe(true);
+      expect(typeof analysis.metrics.securityScore).toBe('number');
+      expect(analysis.metrics.securityScore).toBeGreaterThanOrEqual(0);
+      expect(analysis.metrics.securityScore).toBeLessThanOrEqual(10);
     });
 
     it('should provide actionable security recommendations', async function () {
@@ -408,11 +408,11 @@ function oldFunction(data) {
 
       if (analysis.vulnerabilities.length > 0) {
         analysis.vulnerabilities.forEach(vuln => {
-          expect(vuln).to.have.property('package');
-          expect(vuln).to.have.property('severity');
-          expect(vuln).to.have.property('recommendation');
-          expect(vuln.recommendation).to.be.a('string');
-          expect(vuln.recommendation.length).to.be.at.least(10);
+          expect(vuln).toHaveProperty('package');
+          expect(vuln).toHaveProperty('severity');
+          expect(vuln).toHaveProperty('recommendation');
+          expect(typeof vuln.recommendation).toBe('string');
+          expect(vuln.recommendation.length).toBeGreaterThanOrEqual(10);
         });
       }
     });
@@ -428,12 +428,12 @@ function oldFunction(data) {
         }
       });
 
-      expect(analysis.architecture).to.have.property('pattern');
-      expect(analysis.architecture).to.have.property('style');
-      expect(analysis.patterns).to.be.an('array');
-      expect(analysis.quality).to.have.property('maintainability');
-      expect(analysis.quality.maintainability).to.be.at.least(0);
-      expect(analysis.quality.maintainability).to.be.at.most(10);
+      expect(analysis.architecture).toHaveProperty('pattern');
+      expect(analysis.architecture).toHaveProperty('style');
+      expect(Array.isArray(analysis.patterns)).toBe(true);
+      expect(analysis.quality).toHaveProperty('maintainability');
+      expect(analysis.quality.maintainability).toBeGreaterThanOrEqual(0);
+      expect(analysis.quality.maintainability).toBeLessThanOrEqual(10);
     });
 
     it('should detect architectural issues and provide recommendations', async function () {
@@ -445,12 +445,12 @@ function oldFunction(data) {
         }
       });
 
-      expect(analysis.issues).to.be.an('array');
+      expect(Array.isArray(analysis.issues)).toBe(true);
       analysis.issues.forEach(issue => {
-        expect(issue).to.have.property('type');
-        expect(issue).to.have.property('severity');
-        expect(issue).to.have.property('description');
-        expect(issue).to.have.property('recommendation');
+        expect(issue).toHaveProperty('type');
+        expect(issue).toHaveProperty('severity');
+        expect(issue).toHaveProperty('description');
+        expect(issue).toHaveProperty('recommendation');
       });
     });
   });
@@ -466,8 +466,8 @@ function oldFunction(data) {
         // Should not reach here
         expect.fail('Should have thrown an error');
       } catch (error) {
-        expect(error.code).to.equal('VALIDATION_ERROR');
-        expect(error.message).to.include('Repository path does not exist');
+        expect(error.code).toBe('VALIDATION_ERROR');
+        expect(error.message).toContain('Repository path does not exist');
       }
     });
 
@@ -487,7 +487,7 @@ function oldFunction(data) {
       console.log(`Successful: ${successful.length}, Failed: ${failed.length} `);
 
       // At least 80% should succeed even under high load
-      expect(successful.length).to.be.at.least(40);
+      expect(successful.length).toBeGreaterThanOrEqual(40);
     });
 
     it('should recover from MLX instance failures', async function () {
@@ -504,11 +504,11 @@ function oldFunction(data) {
       const successful = results.filter(r => r.status === 'fulfilled');
 
       // System should continue working even with some failures
-      expect(successful.length).to.be.at.least(80); // At least 80% success rate
+      expect(successful.length).toBeGreaterThanOrEqual(80); // At least 80% success rate
 
       // Check health after stress test
       const health = await mlxClient.health.check();
-      expect(health.status).to.equal('healthy');
+      expect(health.status).toBe('healthy');
     });
   });
 
@@ -525,7 +525,7 @@ function oldFunction(data) {
 
         expect.fail('Should have been blocked by security hook');
       } catch (error) {
-        expect(error.message).to.include('Security validation failed');
+        expect(error.message).toContain('Security validation failed');
       }
     });
 
@@ -544,7 +544,7 @@ function oldFunction(data) {
       });
 
       // Post-tool hook should have run tests
-      expect(editResult.validation.testsPass).to.be.true;
+      expect(editResult.validation.testsPass).toBe(true);
 
       // Cleanup
       await fs.unlink(testFile);
@@ -562,9 +562,9 @@ function oldFunction(data) {
         }
       });
 
-      expect(research.findings).to.be.an('array');
-      expect(research.findings.length).to.be.at.least(1);
-      expect(research.metrics.accuracy).to.be.at.least(0.95);
+      expect(Array.isArray(research.findings)).toBe(true);
+      expect(research.findings.length).toBeGreaterThanOrEqual(1);
+      expect(research.metrics.accuracy).toBeGreaterThanOrEqual(0.95);
     });
 
     it('should execute dependency analysis skill', async function () {
@@ -577,9 +577,9 @@ function oldFunction(data) {
         }
       });
 
-      expect(analysis.dependencies).to.be.an('object');
-      expect(analysis.vulnerabilities).to.be.an('array');
-      expect(analysis.metrics.precision).to.be.at.least(0.95);
+      expect(typeof analysis.dependencies === 'object' && analysis.dependencies !== null).toBe(true);
+      expect(Array.isArray(analysis.vulnerabilities)).toBe(true);
+      expect(analysis.metrics.precision).toBeGreaterThanOrEqual(0.95);
     });
   });
 
@@ -587,14 +587,14 @@ function oldFunction(data) {
     it('should provide comprehensive health status', async function () {
       const health = await mlxClient.health.check();
 
-      expect(health).to.have.property('status');
-      expect(health).to.have.property('timestamp');
-      expect(health).to.have.property('components');
-      expect(health).to.have.property('metrics');
+      expect(health).toHaveProperty('status');
+      expect(health).toHaveProperty('timestamp');
+      expect(health).toHaveProperty('components');
+      expect(health).toHaveProperty('metrics');
 
-      expect(health.components).to.have.property('mcpServer');
-      expect(health.components).to.have.property('mlxServers');
-      expect(health.components).to.have.property('cache');
+      expect(health.components).toHaveProperty('mcpServer');
+      expect(health.components).toHaveProperty('mlxServers');
+      expect(health.components).toHaveProperty('cache');
     });
 
     it('should provide detailed performance metrics', async function () {
@@ -611,15 +611,15 @@ function oldFunction(data) {
       }
       const metrics = await mlxClient.metrics.get();
 
-      expect(metrics).to.have.property('performance');
-      expect(metrics).to.have.property('tokenEfficiency');
-      expect(metrics).to.have.property('mlxPerformance');
-      expect(metrics).to.have.property('resourceUsage');
+      expect(metrics).toHaveProperty('performance');
+      expect(metrics).toHaveProperty('tokenEfficiency');
+      expect(metrics).toHaveProperty('mlxPerformance');
+      expect(metrics).toHaveProperty('resourceUsage');
 
-      expect(metrics.performance.requestsPerSecond).to.be.a('number');
-      expect(metrics.performance.averageResponseTime).to.be.a('number');
-      expect(metrics.tokenEfficiency.cacheHitRate).to.be.at.least(0);
-      expect(metrics.tokenEfficiency.cacheHitRate).to.be.at.most(1);
+      expect(typeof metrics.performance.requestsPerSecond).toBe('number');
+      expect(typeof metrics.performance.averageResponseTime).toBe('number');
+      expect(metrics.tokenEfficiency.cacheHitRate).toBeGreaterThanOrEqual(0);
+      expect(metrics.tokenEfficiency.cacheHitRate).toBeLessThanOrEqual(1);
     });
   });
 });

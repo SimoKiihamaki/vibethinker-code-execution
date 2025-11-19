@@ -1,7 +1,7 @@
 {
   "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/tests/integration/system.test.js",
   "context": {
-    "summary": ".JS file (785 lines, 23.7KB) - 4 imports, 0 exports, ~13 functions",
+    "summary": ".JS file (785 lines, 23.9KB) - 4 imports, 0 exports, ~13 functions",
     "dependencies": [
       "vitest",
       "child_process",
@@ -20,18 +20,23 @@
     "recentChanges": [
       {
         "type": "git-commit",
+        "description": "083f0bb fix: resolve unused variables and empty except clause issues",
+        "timestamp": "2025-11-19T11:23:22.893Z"
+      },
+      {
+        "type": "git-commit",
         "description": "c50cf22 Save progress before code review",
-        "timestamp": "2025-11-19T11:02:17.443Z"
+        "timestamp": "2025-11-19T11:23:22.894Z"
       },
       {
         "type": "git-commit",
         "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
-        "timestamp": "2025-11-19T11:02:17.444Z"
+        "timestamp": "2025-11-19T11:23:22.894Z"
       },
       {
         "type": "git-status",
         "description": "M tests/integration/system.test.js",
-        "timestamp": "2025-11-19T11:02:17.453Z"
+        "timestamp": "2025-11-19T11:23:22.902Z"
       }
     ],
     "fileType": ".js",
@@ -42,6 +47,6 @@
       "Check for proper error handling"
     ]
   },
-  "cachedAt": "2025-11-19T11:02:17.453Z",
-  "expiresAt": "2025-11-19T12:02:17.453Z"
+  "cachedAt": "2025-11-19T11:23:22.902Z",
+  "expiresAt": "2025-11-19T12:23:22.902Z"
 }
