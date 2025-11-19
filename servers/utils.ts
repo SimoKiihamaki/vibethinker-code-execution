@@ -1,4 +1,4 @@
-import { z } from 'zod';
+
 
 /**
  * Estimate token count for text
@@ -33,8 +33,19 @@ export function buildToolPrompt(
     description: string,
     category: string,
     complexity: string,
-    input: any
+    input: any,
+    outputSchema?: string
 ): string {
+    const schemaSection = outputSchema ? `
+JSON schema:
+${outputSchema}
+` : `
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
+
     return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -44,7 +55,7 @@ Constraints:
 - Respond in English
 - Do not use markdown or code fences
 - Do not include meta-instructions or internal reasoning
-- Keep natural-language responses under 180 words
+${outputSchema ? '- Output only JSON per the schema below' : '- Keep natural-language responses under 180 words'}
 
 Tool: ${toolName}
 Description: ${description}
@@ -53,10 +64,5 @@ Complexity: ${complexity}
 
 Input:
 ${JSON.stringify(input, null, 2)}
-
-Output requirements:
-- Provide precise, actionable insights
-- Include specific recommendations and clear next steps
-- Identify relevant patterns and dependencies
-- Minimize tokens while maximizing clarity`;
+${schemaSection}`;
 }

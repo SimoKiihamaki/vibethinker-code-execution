@@ -460,10 +460,11 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
+    import os
     # Configuration for optimized server
     config = {
         'model': {
-            'path': 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit',
+            'path': os.environ.get('MODEL_PATH', 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit'),
             'quantization': args.quantization
         },
         'instance_id': args.instance_id,

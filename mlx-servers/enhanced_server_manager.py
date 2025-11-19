@@ -11,6 +11,8 @@ import time
 import subprocess
 import signal
 import sys
+import os
+import argparse
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -161,9 +163,11 @@ class EnhancedServerManager:
             instance.start_time = time.time()
             
             # Prepare command for optimized server
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            server_script = os.path.join(script_dir, 'optimized_mlx_server.py')
             cmd = [
                 'python3',
-                '/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx-servers/optimized_mlx_server.py',
+                server_script,
                 '--port', str(instance.port),
                 '--instance-id', str(instance.id),
                 '--batch-size', '6',
@@ -506,17 +510,28 @@ async def create_enhanced_manager_app(config: Dict[str, Any]) -> web.Application
     return app
 
 if __name__ == '__main__':
-    # Enhanced configuration
-    config = {
-        'mlx_servers': {
-            'base_port': 8107,
-            'instances': 27
-        },
-        'health_check_interval': 15,
-        'performance_monitor_interval': 10,
-        'max_restart_attempts': 3,
-        'restart_cooldown': 60
-    }
+    parser = argparse.ArgumentParser(description='Enhanced MLX Server Manager')
+    parser.add_argument('--config', type=str, default='mlx_enhanced_config.json', help='Path to configuration file')
+    parser.add_argument('--port', type=int, default=8091, help='Port to run the manager on')
+    args = parser.parse_args()
+
+    # Load configuration
+    try:
+        with open(args.config, 'r') as f:
+            config = json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load config from {args.config}: {e}")
+        # Fallback config
+        config = {
+            'mlx_servers': {
+                'base_port': 8107,
+                'instances': 27
+            },
+            'health_check_interval': 15,
+            'performance_monitor_interval': 10,
+            'max_restart_attempts': 3,
+            'restart_cooldown': 60
+        }
     
     # Run enhanced manager
-    web.run_app(create_enhanced_manager_app(config), host='0.0.0.0', port=8094)
+    web.run_app(create_enhanced_manager_app(config), host='0.0.0.0', port=args.port)
