@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -32,8 +32,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   const validatedInput = analyzeFunctionSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);
@@ -119,9 +118,3 @@ function parseanalyzeFunctionResult(result: string, input: analyzeFunctionInput)
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

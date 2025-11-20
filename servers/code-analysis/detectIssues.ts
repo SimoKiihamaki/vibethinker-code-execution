@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
 
 /**
  * Detect potential issues, bugs, and code smells
@@ -32,8 +32,7 @@ export async function detectIssues(input: detectIssuesInput): Promise<detectIssu
   const validatedInput = detectIssuesSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = builddetectIssuesPrompt(validatedInput);
@@ -119,9 +118,3 @@ function parsedetectIssuesResult(result: string, input: detectIssuesInput): any 
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

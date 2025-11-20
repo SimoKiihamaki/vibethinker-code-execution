@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
 
 /**
  * Deep analysis of a single file including complexity, patterns, and issues
@@ -32,8 +32,7 @@ export async function analyzeFile(input: analyzeFileInput): Promise<analyzeFileR
   const validatedInput = analyzeFileSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeFilePrompt(validatedInput);
@@ -119,9 +118,3 @@ function parseanalyzeFileResult(result: string, input: analyzeFileInput): any {
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

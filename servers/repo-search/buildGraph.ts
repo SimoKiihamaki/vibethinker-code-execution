@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
 
 /**
  * Build comprehensive dependency graph of the repository
@@ -32,8 +32,7 @@ export async function buildGraph(input: buildGraphInput): Promise<buildGraphResu
   const validatedInput = buildGraphSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildbuildGraphPrompt(validatedInput);
@@ -119,9 +118,3 @@ function parsebuildGraphResult(result: string, input: buildGraphInput): any {
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
 
 /**
  * Create comprehensive architectural map of the codebase
@@ -32,8 +32,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
   const validatedInput = mapArchitectureSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildmapArchitecturePrompt(validatedInput);
@@ -119,9 +118,3 @@ function parsemapArchitectureResult(result: string, input: mapArchitectureInput)
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
