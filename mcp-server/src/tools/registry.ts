@@ -489,8 +489,9 @@ export class ToolRegistry {
             const content = await fs.readFile(file, 'utf8');
             const lines = content.split('\n');
             const escapedName = escapeRegExp(String(args.functionName));
+            // Use bounded pattern to prevent ReDoS: match non-brace characters only
             const regex = new RegExp(
-              `(function\\s+${escapedName}\\b|const\\s+${escapedName}\\s*=|class\\s+.*${escapedName}\\b)`
+              `(function\\s+${escapedName}\\b|const\\s+${escapedName}\\s*=|class\\s+[^{]*?${escapedName}\\b)`
             );
             let lineNum = 0;
             lines.some((line, idx) => {
