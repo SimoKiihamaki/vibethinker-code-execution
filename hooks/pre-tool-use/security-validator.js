@@ -255,8 +255,8 @@ function validateBashCommand(command) {
     'mkfs',
     'dd if=',
     ':(){ :|:& };:',
-    'wget.*sh\\s*\\|',
-    'curl.*sh\\s*\\|'
+    'wget[^\\n]*?sh\\s*\\|',
+    'curl[^\\n]*?sh\\s*\\|'
   ];
 
   for (const dangerous of dangerousCommands) {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getMLXClient } from '../shared/utils.js';
 import winston from 'winston';
 import chalk from 'chalk';
 import fs from 'fs/promises';
@@ -164,7 +165,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { MLXClient } from './client.js';
+import { getMLXClient } from '../../../shared/utils.js';
 
 /**
  * ${tool.description}
@@ -197,8 +198,7 @@ export async function ${tool.name}(input: ${tool.name}Input): Promise<${tool.nam
   const validatedInput = ${tool.name}Schema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = build${tool.name}Prompt(validatedInput);
