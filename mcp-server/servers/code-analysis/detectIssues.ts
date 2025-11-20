@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { estimateTokens } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Detect potential issues, bugs, and code smells
