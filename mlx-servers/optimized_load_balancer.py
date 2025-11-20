@@ -9,7 +9,7 @@ import json
 import logging
 import time
 import threading
-from typing import Dict, List, Optional, Any, Set, Tuple
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import aiohttp
@@ -419,7 +419,10 @@ class OptimizedMLXLoadBalancer:
 
         elif algorithm == "least_connections":
             # Least connections with performance scoring
-            return max(healthy_instances, key=lambda x: x.performance_score)
+            return min(
+                healthy_instances,
+                key=lambda x: (x.active_requests, -x.performance_score),
+            )
 
         elif algorithm == "response_time":
             # Fastest response time with throughput consideration
@@ -555,33 +558,39 @@ class OptimizedMLXLoadBalancer:
             await asyncio.sleep(retry_delay)
 
             try:
-                session = (
-                    self.connection_pool
-                    if self.connection_pool and not self.connection_pool.closed
-                    else None
+                # Calculate estimated tokens for this retry attempt
+                estimated_tokens = (
+                    (len(request_data.get("prompt", "").split()) * 1.3)
+                    if "prompt" in request_data
+                    else (
+                        len(
+                            " ".join(
+                                [
+                                    m.get("content", "")
+                                    for m in request_data.get("messages", [])
+                                ]
+                            ).split()
+                        )
+                        * 1.3
+                    )
                 )
 
-                if session:
-                    async with session.post(
-                        url, json=request_data, timeout=timeout
-                    ) as response:
-                        if response.status == 200:
-                            logger.info(
-                                f"Retry attempt {attempt + 1} succeeded for instance {instance.id}"
-                            )
-                            return await response.json()
+                # Reuse _forward_to_instance for proper accounting
+                response_data, status_code, response_time, current_throughput = (
+                    await self._forward_to_instance(
+                        instance, request_data, url, estimated_tokens, timeout
+                    )
+                )
+
+                if status_code == 200:
+                    logger.info(
+                        f"Retry attempt {attempt + 1} succeeded for instance {instance.id}"
+                    )
+                    return response_data
                 else:
-                    async with aiohttp.ClientSession(
-                        timeout=aiohttp.ClientTimeout(total=timeout)
-                    ) as temp_session:
-                        async with temp_session.post(
-                            url, json=request_data
-                        ) as response:
-                            if response.status == 200:
-                                logger.info(
-                                    f"Retry attempt {attempt + 1} succeeded for instance {instance.id}"
-                                )
-                                return await response.json()
+                    logger.warning(
+                        f"Retry attempt {attempt + 1} failed with status {status_code} for instance {instance.id}"
+                    )
 
             except Exception as retry_error:
                 logger.warning(f"Retry attempt {attempt + 1} failed: {retry_error}")
