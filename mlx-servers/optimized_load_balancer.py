@@ -686,6 +686,12 @@ class OptimizedMLXLoadBalancer:
                 retry_response = await self._retry_request(
                     instance, request_data, url, timeout, max_retries=2
                 )
+                retry_response["_performance"] = {
+                    "instance_id": instance.id,
+                    "response_time": instance.average_response_time,
+                    "throughput": instance.current_throughput,
+                    "active_requests": instance.active_requests,
+                }
                 return web.json_response(retry_response)
 
             except Exception as e:
