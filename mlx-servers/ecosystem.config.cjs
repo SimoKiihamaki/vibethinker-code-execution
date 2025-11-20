@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'mlx-load-balancer',
-      script: 'load_balancer.py',
+      script: 'optimized_load_balancer.py',
+      args: '--config config.json --port 8090',
       interpreter: 'python3',
       instances: 1,
       exec_mode: 'fork',

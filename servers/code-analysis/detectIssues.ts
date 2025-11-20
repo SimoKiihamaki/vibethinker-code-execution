@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: issues, bugs, code-smells
  */
 
-const detectIssuesSchema = z.object({});
+const detectIssuesSchema = z.object({ target: z.string().describe('File or directory to analyze'), issueTypes: z.array(z.enum(['bugs', 'code-smells', 'security', 'performance'])).default(["bugs","code-smells"]), confidence: z.enum(['low', 'medium', 'high']).default("medium") });
 
 export interface detectIssuesInput extends z.infer<typeof detectIssuesSchema> {}
 

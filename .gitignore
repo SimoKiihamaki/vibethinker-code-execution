@@ -88,6 +88,9 @@ config/api-keys.json
 config/*.local.json
 .claude/settings.local.json
 
+# Claude context cache files (auto-generated with expiration timestamps)
+.claude/context/
+
 # Workspace (user-specific)
 workspace/context/*.local
 workspace/sessions/*.local

@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: function, analysis, complexity
  */
 
-const analyzeFunctionSchema = z.object({});
+const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze'), includeCallers: z.boolean().default(false), includeCallees: z.boolean().default(false) });
 
 export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
 

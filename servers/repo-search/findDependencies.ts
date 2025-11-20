@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: dependencies, imports, graph
  */
 
-const findDependenciesSchema = z.object({});
+const findDependenciesSchema = z.object({ filePath: z.string().describe('Path to the file to analyze'), depth: z.number().int().default(2), includeExternal: z.boolean().default(false) });
 
 export interface findDependenciesInput extends z.infer<typeof findDependenciesSchema> {}
 

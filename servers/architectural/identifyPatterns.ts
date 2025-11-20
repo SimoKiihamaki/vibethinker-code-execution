@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: patterns, architecture, design
  */
 
-const identifyPatternsSchema = z.object({});
+const identifyPatternsSchema = z.object({ codebase: z.string().describe('Path to codebase to analyze'), patternTypes: z.array(z.enum(['design-patterns', 'architectural-patterns', 'microservices', 'ddd'])).default(["design-patterns"]), includeViolations: z.boolean().default(true) });
 
 export interface identifyPatternsInput extends z.infer<typeof identifyPatternsSchema> {}
 

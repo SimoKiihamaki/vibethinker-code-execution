@@ -260,7 +260,7 @@ claude-code "Update the user service without breaking auth"
 {
   "mlx_servers": {
     "instances": 27,
-    "base_port": 8080,
+    "base_port": 8107,
     "model_path": "./models/qwen3-vl-2b-thinking-mlx-8bit",
     "quantization": "8bit",
     "max_tokens": 32768,
@@ -381,7 +381,7 @@ npm run health-check
 pm2 list
 
 # Performance metrics
-curl http://localhost:8080/metrics
+curl http://localhost:8107/metrics
 ```
 
 ### Logging

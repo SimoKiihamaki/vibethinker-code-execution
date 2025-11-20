@@ -43,31 +43,32 @@ export class ProgressiveDisclosureGenerator {
 
   async generateAPI(): Promise<void> {
     logger.info('Generating progressive disclosure API...');
-    
+
     // Ensure servers directory exists
     await fs.mkdir(this.apiPath, { recursive: true });
-    
+
     // Generate API structure for each category
     const categories = this.toolRegistry.getCategories();
-    
+
     for (const category of categories) {
       await this.generateCategoryAPI(category);
     }
-    
+
     // Generate main index file
-    await this.generateMainIndex(categories);
-    
+    const mainIndexContent = this.buildMainIndexContent(categories);
+    await fs.writeFile(path.join(this.apiPath, 'index.ts'), mainIndexContent);
+
     logger.info(chalk.green('✅ Progressive disclosure API generated'));
   }
 
   async generateTools(): Promise<GeneratedTool[]> {
     const tools = this.toolRegistry.getAllTools();
-    
+
     logger.info(`Generating ${tools.length} tools from registry`);
-    
+
     const generatedTools = tools.map(tool => {
       logger.debug(`Generating tool: ${tool.name} (${tool.category})`);
-      
+
       return {
         name: tool.name,
         description: tool.description,
@@ -77,29 +78,29 @@ export class ProgressiveDisclosureGenerator {
         tags: tool.tags,
       };
     });
-    
+
     logger.info(`Successfully generated ${generatedTools.length} tools`);
     return generatedTools;
   }
 
   async loadTool(name: string): Promise<GeneratedTool | null> {
     logger.debug(`Loading tool: ${name}`);
-    
+
     // Check cache first
     if (this.cache.has(name)) {
       logger.debug(`Tool ${name} found in cache`);
       return this.cache.get(name)!;
     }
-    
+
     const tool = this.toolRegistry.getTool(name);
-    
+
     if (!tool) {
       logger.warn(`Tool not found in registry: ${name}`);
       return null;
     }
-    
+
     logger.debug(`Tool found in registry: ${name}, creating generated tool`);
-    
+
     const generatedTool: GeneratedTool = {
       name: tool.name,
       description: tool.description,
@@ -108,42 +109,42 @@ export class ProgressiveDisclosureGenerator {
       complexity: tool.complexity,
       tags: tool.tags,
     };
-    
+
     // Cache for future use
     this.cache.set(name, generatedTool);
     logger.debug(`Tool ${name} cached successfully`);
-    
+
     return generatedTool;
   }
 
   private async generateCategoryAPI(category: string): Promise<void> {
     const categoryPath = path.join(this.apiPath, category);
     await fs.mkdir(categoryPath, { recursive: true });
-    
+
     const tools = this.toolRegistry.getToolsByCategory(category);
-    
+
     // Generate index.ts for category
     const indexContent = this.generateCategoryIndex(category, tools);
     await fs.writeFile(path.join(categoryPath, 'index.ts'), indexContent);
-    
+
     // Generate individual tool files
     for (const tool of tools) {
       const toolContent = this.generateToolFile(tool);
       await fs.writeFile(path.join(categoryPath, `${tool.name}.ts`), toolContent);
     }
-    
+
     logger.debug(`Generated ${tools.length} tools for category: ${chalk.cyan(category)}`);
   }
 
   private generateCategoryIndex(category: string, tools: any[]): string {
-    const imports = tools.map(tool => 
+    const imports = tools.map(tool =>
       `import { ${tool.name} } from './${tool.name}.js';`
     ).join('\n');
-    
-    const exports = tools.map(tool => 
+
+    const exports = tools.map(tool =>
       `  ${tool.name},`
     ).join('\n');
-    
+
     return `${imports}
 
 // ${category} tools for progressive disclosure
@@ -163,7 +164,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * ${tool.description}
@@ -196,8 +197,7 @@ export async function ${tool.name}(input: ${tool.name}Input): Promise<${tool.nam
   const validatedInput = ${tool.name}Schema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = build${tool.name}Prompt(validatedInput);
@@ -292,23 +292,23 @@ function estimateTokens(text: string): number {
 `;
   }
 
-  private generateMainIndex(categories: string[]): string {
-    const imports = categories.map(category => 
+  private buildMainIndexContent(categories: string[]): string {
+    const imports = categories.map(category =>
       `import * as ${category.replace('-', '')} from './${category}/index.js';`
     ).join('\n');
-    
-    const exports = categories.map(category => 
+
+    const exports = categories.map(category =>
       `  ${category.replace('-', '')},`
     ).join('\n');
-    
-    const categoriesMetadata = categories.map(category => 
+
+    const categoriesMetadata = categories.map(category =>
       `    {
       name: '${category}',
       path: './${category}',
       complexity: '${this.getCategoryComplexity(category)}',
     }`
     ).join(',\n');
-    
+
     return `${imports}
 
 /**
@@ -346,21 +346,86 @@ ${categoriesMetadata}
 
 // Helper function to discover tools
 export function discoverTools(query?: string) {
-  const allTools = this.toolRegistry.getAllTools();
+  const allTools = [
+    ${this.toolRegistry.getAllTools().map(t => `{
+      name: '${t.name}',
+      description: '${t.description.replace(/'/g, "\\'")}',
+      category: '${t.category}',
+      tags: [${t.tags.map(tag => `'${tag}'`).join(', ')}]
+    }`).join(',\n    ')}
+  ];
   
   if (!query) {
     return allTools;
   }
   
-  return this.toolRegistry.searchTools(query);
+  const lowerQuery = query.toLowerCase();
+  return allTools.filter(tool => 
+    tool.name.toLowerCase().includes(lowerQuery) || 
+    tool.description.toLowerCase().includes(lowerQuery) ||
+    tool.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+  );
 }
 `;
   }
 
-  private generateZodSchema(schema: z.ZodObject<any>): string {
-    // This is a simplified version - in reality, we'd need to recursively
-    // traverse the Zod schema and generate the appropriate code
-    return 'z.object({})'; // Placeholder
+  private generateZodSchema(schema: z.ZodType<any>): string {
+    if (schema instanceof z.ZodObject) {
+      const shape = schema.shape;
+      const props = Object.entries(shape).map(([key, value]) => {
+        return `${key}: ${this.generateZodSchema(value as z.ZodType<any>)}`;
+      });
+      return `z.object({ ${props.join(', ')} })`;
+    }
+
+    if (schema instanceof z.ZodString) {
+      let str = 'z.string()';
+      if (schema.description) str += `.describe('${schema.description.replace(/'/g, "\\'")}')`;
+      // Add other string validations if needed (min, max, email, etc.)
+      // Note: Accessing internal checks is tricky in Zod, so we stick to basic types + description for now
+      // or rely on the fact that we are generating code for *input validation* on the client side
+      // which might be less strict than server side.
+      // However, for a robust implementation, we should try to preserve as much as possible.
+      // Given the complexity, we'll focus on the structure and description.
+      return str;
+    }
+
+    if (schema instanceof z.ZodNumber) {
+      let num = 'z.number()';
+      if (schema.description) num += `.describe('${schema.description.replace(/'/g, "\\'")}')`;
+      if (schema._def?.checks?.some((check: any) => check.kind === 'int')) num += '.int()';
+      return num;
+    }
+
+    if (schema instanceof z.ZodBoolean) {
+      let bool = 'z.boolean()';
+      if (schema.description) bool += `.describe('${schema.description.replace(/'/g, "\\'")}')`;
+      return bool;
+    }
+
+    if (schema instanceof z.ZodArray) {
+      return `z.array(${this.generateZodSchema(schema.element)})`;
+    }
+
+    if (schema instanceof z.ZodEnum) {
+      const values = schema._def.values;
+      return `z.enum([${values.map((v: string) => `'${v}'`).join(', ')}])`;
+    }
+
+    if (schema instanceof z.ZodOptional) {
+      return `${this.generateZodSchema(schema.unwrap())}.optional()`;
+    }
+
+    if (schema instanceof z.ZodDefault) {
+      // Handle default values if possible, or just unwrap
+      // For code generation, we might want to show the default
+      const def = schema._def.defaultValue();
+      const inner = this.generateZodSchema(schema.removeDefault());
+      return `${inner}.default(${JSON.stringify(def)})`;
+    }
+
+    // Fallback for unknown types
+    return 'z.any()';
   }
 
   private getCategoryComplexity(category: string): string {

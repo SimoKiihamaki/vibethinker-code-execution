@@ -607,6 +607,9 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Failed to load config from {args.config}: {e}")
         # Fallback config
+        logger.warning(
+            "Using hardcoded fallback configuration. Consider creating a proper config file."
+        )
         config = {
             "mlx_servers": {"base_port": 8107, "instances": 27},
             "health_check_interval": 15,

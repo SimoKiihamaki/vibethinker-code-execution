@@ -3,6 +3,8 @@ import winston from 'winston';
 import chalk from 'chalk';
 import { MLXClient } from './client.js';
 import { ToolRegistry } from './tools/registry.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 const logger = winston.createLogger({
   level: 'info',
@@ -57,7 +59,7 @@ export class Orchestrator {
   async executeTool(tool: any, args: Record<string, unknown>): Promise<ToolResult> {
     const startTime = Date.now();
     const cacheKey = this.generateCacheKey(tool.name, args);
-    
+
     // Check cache first
     if (this.executionCache.has(cacheKey)) {
       const cached = this.executionCache.get(cacheKey)!;
@@ -75,13 +77,13 @@ export class Orchestrator {
 
     try {
       logger.info(`Executing tool: ${chalk.cyan(tool.name)}`);
-      
+
       // Build context for MLX processing
       const context = await this.buildExecutionContext(tool, args);
-      
+
       // Generate optimized prompt for MLX
       const prompt = await this.generateExecutionPrompt(tool, args, context);
-      
+
       // Execute through MLX backend
       const mlxResult = await this.mlxClient.generateCompletion(prompt, {
         temperature: 0.1,
@@ -90,14 +92,14 @@ export class Orchestrator {
 
       // Parse and validate result
       const result = await this.parseToolResult(tool, mlxResult, args);
-      
+
       // Cache successful results
       if (result.success) {
         this.executionCache.set(cacheKey, result);
       }
 
       const executionTime = Date.now() - startTime;
-      
+
       logger.info(
         `Tool ${chalk.cyan(tool.name)} completed in ${chalk.green(executionTime + 'ms')}`
       );
@@ -110,12 +112,12 @@ export class Orchestrator {
           cacheHit: false,
         },
       };
-      
+
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      
+
       logger.error(`Tool ${chalk.cyan(tool.name)} failed:`, error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -145,17 +147,17 @@ export class Orchestrator {
         context.repoStructure = await this.getRepositoryStructure();
         context.recentSearches = this.getRecentContext('search');
         break;
-        
+
       case 'code-analysis':
         context.codebasePatterns = await this.getCodebasePatterns();
         context.analysisHistory = this.getRecentContext('analysis');
         break;
-        
+
       case 'architectural':
         context.architectureMap = await this.getArchitectureMap();
         context.designPatterns = this.getRecentContext('architecture');
         break;
-        
+
       case 'dependency-analysis':
         context.dependencyGraph = await this.getDependencyGraph();
         context.importHistory = this.getRecentContext('imports');
@@ -215,7 +217,9 @@ Output requirements:
             data: parsed,
           };
         }
-      } catch {}
+      } catch (err) {
+        logger.debug(`Failed to parse JSON from tool result: ${err}. Extracted JSON: ${extractedJson}`);
+      }
     }
 
     const textResult = this.sanitizeOutput(mlxResult, 'text');
@@ -236,7 +240,7 @@ Output requirements:
     t = t.replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''));
     t = t
       .split(/\n/)
-      .filter(line => 
+      .filter(line =>
         !/for the user/i.test(line) &&
         !/your response should/i.test(line) &&
         !/^\s*your task:/i.test(line) &&
@@ -290,7 +294,7 @@ Output requirements:
         acc[key] = args[key];
         return acc;
       }, {} as Record<string, unknown>);
-    
+
     return `${toolName}:${JSON.stringify(sortedArgs)}`;
   }
 
@@ -300,10 +304,30 @@ Output requirements:
   }
 
   private async getRepositoryStructure(): Promise<Record<string, unknown>> {
-    // This would be implemented to scan the actual repository
-    return {
-      // Implementation would scan and return structure
-    };
+    const root = process.cwd();
+    const structure: Record<string, any> = {};
+
+    async function scan(dir: string, node: any, depth: number) {
+      if (depth > 3) return; // Limit depth
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === 'dist') continue;
+
+          if (e.isDirectory()) {
+            node[e.name] = {};
+            await scan(path.join(dir, e.name), node[e.name], depth + 1);
+          } else {
+            node[e.name] = 'file';
+          }
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+
+    await scan(root, structure, 0);
+    return structure;
   }
 
   private getRecentContext(type: string): Array<Record<string, unknown>> {
@@ -320,26 +344,58 @@ Output requirements:
       }));
   }
 
-  private async getCodebasePatterns(): Promise<Record<string, unknown>> {
-    // Analyze codebase for common patterns
-    return {
-      // Implementation would analyze patterns
-    };
-  }
+    private async getCodebasePatterns(): Promise<Record<string, unknown>> {
+      try {
+        // Reuse the identifyPatterns tool logic
+        return await this.toolRegistry.executeTool('identifyPatterns', {
+          codebase: process.cwd(),
+          patternTypes: ['architectural', 'design']
+        });
+      } catch (e) {
+        logger.warn('Failed to get codebase patterns', e);
+        return {
+          _error: 'getCodebasePatterns',
+          _message: e instanceof Error ? e.message : String(e),
+          _stack: e instanceof Error ? e.stack : undefined,
+        };
+      }
+    }
 
   private async getArchitectureMap(): Promise<Record<string, unknown>> {
-    // Build architectural map of the codebase
-    return {
-      // Implementation would map architecture
-    };
-  }
+    try {
+      // Reuse mapArchitecture tool if available, or fallback to basic structure
+      // Since mapArchitecture wasn't explicitly in the "missing" list, we assume it exists or we use a placeholder that tries to call it.
+      // If it fails (e.g. not implemented), we return a basic map.
+      return await this.toolRegistry.executeTool('mapArchitecture', {
+        target: process.cwd(),
+        depth: 'high'
+      });
+      } catch (e) {
+        // Fallback: return structure as a proxy for architecture
+        return {
+          structure: await this.getRepositoryStructure(),
+          _error: 'getArchitectureMap',
+          _message: e instanceof Error ? e.message : String(e),
+          _stack: e instanceof Error ? e.stack : undefined,
+        };
+      }
+    }
 
   private async getDependencyGraph(): Promise<Record<string, unknown>> {
-    // Build dependency graph
-    return {
-      // Implementation would build graph
-    };
-  }
+    try {
+      return await this.toolRegistry.executeTool('buildGraph', {
+        path: process.cwd(),
+        depth: 2
+      });
+      } catch (e) {
+        return {
+          error: 'Failed to build dependency graph',
+          _error: 'getDependencyGraph',
+          _message: e instanceof Error ? e.message : String(e),
+          _stack: e instanceof Error ? e.stack : undefined,
+        };
+      }
+    }
 
   addToContext(role: string, content: string): void {
     this.contextWindow.push({

@@ -1,0 +1,120 @@
+import { z } from 'zod';
+import { getMLXClient, estimateTokens } from '../shared/utils.js';
+
+/**
+ * Generate comprehensive documentation from code analysis
+ * 
+ * Category: context-building
+ * Complexity: complex
+ * Tags: documentation, generation, comprehensive
+ */
+
+const buildDocumentationSchema = z.object({ target: z.string().describe('Target file or directory'), docType: z.enum(['api', 'architecture', 'usage', 'comprehensive']).default("comprehensive"), includeExamples: z.boolean().default(true) });
+
+export interface buildDocumentationInput extends z.infer<typeof buildDocumentationSchema> {}
+
+export interface buildDocumentationResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  metadata?: {
+    executionTime: number;
+    tokensUsed: number;
+    cacheHit: boolean;
+  };
+}
+
+/**
+ * Execute buildDocumentation tool with progressive disclosure
+ */
+export async function buildDocumentation(input: buildDocumentationInput): Promise<buildDocumentationResult> {
+  // Validate input
+  const validatedInput = buildDocumentationSchema.parse(input);
+  
+  // Get MLX client instance
+  const mlxClient = await getMLXClient();
+  
+  // Build context-aware prompt
+  const prompt = buildDocumentationPrompt(validatedInput);
+  
+  // Execute through MLX backend
+  const startTime = Date.now();
+  
+  try {
+    const result = await mlxClient.generateCompletion(prompt, {
+      temperature: 0.1,
+      max_tokens: 4096,
+    });
+    
+    const executionTime = Date.now() - startTime;
+    
+    return {
+      success: true,
+      data: parseBuildDocumentationResult(result, validatedInput),
+      metadata: {
+        executionTime,
+        tokensUsed: estimateTokens(prompt + result),
+        cacheHit: false,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: {
+        executionTime: Date.now() - startTime,
+        tokensUsed: 0,
+        cacheHit: false,
+      },
+    };
+  }
+}
+
+/**
+ * Build context-aware prompt for buildDocumentation
+ */
+function buildDocumentationPrompt(input: buildDocumentationInput): string {
+  return `You are VibeThinker, an expert code analysis AI.
+
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
+
+Tool: buildDocumentation
+Description: Generate comprehensive documentation from code analysis
+Category: context-building
+Complexity: complex
+
+Input:
+${JSON.stringify(input, null, 2)}
+
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
+}
+
+/**
+ * Parse and structure buildDocumentation results
+ */
+function parseBuildDocumentationResult(result: string, input: buildDocumentationInput): any {
+  try {
+    // Try to parse as JSON
+    const parsed = JSON.parse(result);
+    return parsed;
+  } catch {
+    // If not JSON, return structured text result
+    return {
+      result: result,
+      input: input,
+      timestamp: Date.now(),
+    };
+  }
+}
+

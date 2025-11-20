@@ -67,7 +67,7 @@ export TARGET_THROUGHPUT=2000
 The unified script maintains the complete system architecture:
 
 ```
-Claude Code → MCP Server (port 8090) → Load Balancer (port 8091) → MLX Instances (ports 8080-8106)
+Claude Code → MCP Server (stdio) → Load Balancer (port 8090) → MLX Instances (ports 8107-8133)
                                     ↓
                             Health Monitor (port 8092) ← Monitoring Dashboard
 ```

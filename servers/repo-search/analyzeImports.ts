@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: imports, cycles, patterns
  */
 
-const analyzeImportsSchema = z.object({});
+const analyzeImportsSchema = z.object({ directory: z.string().describe('Directory to analyze'), detectCycles: z.boolean().default(true), analyzePatterns: z.boolean().default(true) });
 
 export interface analyzeImportsInput extends z.infer<typeof analyzeImportsSchema> {}
 

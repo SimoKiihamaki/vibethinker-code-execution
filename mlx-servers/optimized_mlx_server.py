@@ -19,7 +19,6 @@ from aiohttp import web, ClientSession
 import gc
 import psutil
 from concurrent.futures import ThreadPoolExecutor
-import torch
 
 # Configure logging
 logging.basicConfig(
@@ -56,47 +55,67 @@ class OptimizedMLXModel:
     def _load_model(self):
         """Load model with optimized settings"""
         logger.info(
-            f"Loading model from {self.model_path} with {self.quantization} quantization"
+            f"Loading model from {self.model_path} with quantization: {self.quantization}"
         )
 
-        # Load model with quantization for memory efficiency
-        self.model, self.tokenizer = load(
-            self.model_path, tokenizer_config={"trust_remote_code": True}
-        )
+        try:
+            # Load model with quantization configuration
+            # Note: Quantization should be configured in the model's config.json file
+            # If the model doesn't have quantization configuration, quantization will be skipped
+            self.model, self.tokenizer = load(
+                self.model_path, tokenizer_config={"trust_remote_code": True}
+            )
 
-        # Apply quantization if specified
-        if self.quantization == "q4":
-            # Apply Q4 quantization for 75% memory reduction
-            self.model = self._apply_q4_quantization(self.model)
+            # Verify quantization was applied if specified
+            if self.quantization != "none" and self.quantization != "q4":
+                logger.warning(
+                    f"Quantization '{self.quantization}' was specified but may not be applied. "
+                    f"Ensure the model configuration supports this quantization level."
+                )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to load model with quantization {self.quantization}: {e}"
+            )
+            logger.info("Attempting to load model without quantization...")
+            try:
+                self.model, self.tokenizer = load(
+                    self.model_path, tokenizer_config={"trust_remote_code": True}
+                )
+            except Exception as fallback_error:
+                logger.error(
+                    f"Failed to load model even without quantization: {fallback_error}"
+                )
+                raise
 
         logger.info("Model loaded successfully")
 
-    def _apply_q4_quantization(self, model: nn.Module) -> nn.Module:
-        """Apply Q4 quantization to reduce memory usage by 75%"""
-        logger.info("Applying Q4 quantization for 75% memory reduction")
-
-        # Quantize linear layers to 4-bit
-        for name, module in model.named_modules():
-            if isinstance(module, nn.Linear):
-                # Quantize weights to 4-bit
-                quantized_weight = mx.quantize(module.weight, bits=4)
-                module.weight = quantized_weight
-
-        return model
-
     def _setup_optimization(self):
         """Setup performance optimizations"""
-        # Enable memory growth to avoid OOM
-        mx.set_memory_limit(2 * 1024 * 1024 * 1024)  # 2GB limit
-
-        # Set optimal thread count for CPU operations
+        # Set optimal thread count
         cpu_count = psutil.cpu_count(logical=False) or 4
-        mx.set_default_device(mx.cpu)
+
+        # Use GPU if available (Apple Silicon)
+        try:
+            if mx.metal.is_available():
+                mx.set_default_device(mx.gpu)
+                logger.info("Using Metal GPU acceleration")
+            else:
+                mx.set_default_device(mx.cpu)
+                logger.info("Using CPU (Metal not available)")
+        except AttributeError as e:
+            logger.warning(f"Metal API not available in this MLX version: {e}")
+            mx.set_default_device(mx.cpu)
+            logger.info("Using CPU (Metal API unavailable)")
+        except Exception as e:
+            logger.warning(f"Failed to detect Metal availability: {e}")
+            mx.set_default_device(mx.cpu)
+            logger.info("Using CPU (Metal detection failed)")
 
         # Setup thread pool for parallel processing
         self.executor = ThreadPoolExecutor(max_workers=cpu_count)
 
-        logger.info(f"Optimization setup complete with {cpu_count} CPU threads")
+        logger.info(f"Optimization setup complete with {cpu_count} threads")
 
     def generate_optimized(
         self,
@@ -296,13 +315,15 @@ class OptimizedMLXServer:
                     ],
                     "model": self.config["model"]["path"],
                     "usage": {
-                        "prompt_tokens": len(self.model.tokenizer.encode(prompt)),
-                        "completion_tokens": len(
-                            self.model.tokenizer.encode(response_text)
+                        "prompt_tokens": (
+                            prompt_tokens := len(self.model.tokenizer.encode(prompt))
                         ),
-                        "total_tokens": len(
-                            self.model.tokenizer.encode(prompt + response_text)
+                        "completion_tokens": (
+                            completion_tokens := len(
+                                self.model.tokenizer.encode(response_text)
+                            )
                         ),
+                        "total_tokens": prompt_tokens + completion_tokens,
                     },
                     "processing_time": processing_time,
                     "timestamp": time.time(),
@@ -398,6 +419,66 @@ class OptimizedMLXServer:
                 {"error": f"Internal server error: {str(e)}"}, status=500
             )
 
+    async def handle_chat_completion(self, request: web.Request) -> web.Response:
+        """Handle chat completion requests with optimization"""
+        try:
+            request_data = await request.json()
+            messages = request_data.get("messages", [])
+
+            # Apply chat template
+            if hasattr(self.model.tokenizer, "apply_chat_template"):
+                prompt = self.model.tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+            else:
+                # Fallback for models without chat template
+                prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+                prompt += "\nassistant:"
+
+            # Update request data with prompt
+            request_data["prompt"] = prompt
+
+            # Create future for async response
+            future = asyncio.Future()
+            request_data["future"] = future
+
+            # Add request to queue
+            await self.request_queue.put(request_data)
+
+            # Wait for processing
+            response_data = await future
+
+            # Transform response to chat format
+            chat_response = {
+                "id": "chatcmpl-" + str(int(time.time())),
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": response_data["model"],
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": response_data["choices"][0]["text"],
+                        },
+                        "finish_reason": response_data["choices"][0]["finish_reason"],
+                    }
+                ],
+                "usage": response_data["usage"],
+            }
+
+            # Add performance metadata if present
+            if "_performance" in response_data:
+                chat_response["_performance"] = response_data["_performance"]
+
+            return web.json_response(chat_response)
+
+        except Exception as e:
+            logger.error(f"Chat completion request error: {e}")
+            return web.json_response(
+                {"error": f"Internal server error: {str(e)}"}, status=500
+            )
+
     async def handle_health(self, request: web.Request) -> web.Response:
         """Health check endpoint"""
         try:
@@ -436,6 +517,7 @@ class OptimizedMLXServer:
 
         # Add routes
         app.router.add_post("/v1/completions", self.handle_completion)
+        app.router.add_post("/v1/chat/completions", self.handle_chat_completion)
         app.router.add_get("/health", self.handle_health)
 
         # Store server reference

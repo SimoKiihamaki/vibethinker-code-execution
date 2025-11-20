@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: graph, dependencies, visualization
  */
 
-const buildGraphSchema = z.object({});
+const buildGraphSchema = z.object({ rootPath: z.string().describe('Root path of the repository'), includeTypes: z.array(z.string()).optional(), excludePatterns: z.array(z.string()).optional() });
 
 export interface buildGraphInput extends z.infer<typeof buildGraphSchema> {}
 

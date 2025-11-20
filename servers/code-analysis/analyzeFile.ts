@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: analysis, file, complexity
  */
 
-const analyzeFileSchema = z.object({});
+const analyzeFileSchema = z.object({ filePath: z.string().describe('Path to the file to analyze'), analysisType: z.enum(['full', 'complexity', 'patterns', 'issues']).default("full"), includeSuggestions: z.boolean().default(true) });
 
 export interface analyzeFileInput extends z.infer<typeof analyzeFileSchema> {}
 

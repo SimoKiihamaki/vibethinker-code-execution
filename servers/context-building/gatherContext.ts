@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: context, gathering, comprehensive
  */
 
-const gatherContextSchema = z.object({});
+const gatherContextSchema = z.object({ target: z.string().describe('File, directory, or pattern to gather context for'), contextTypes: z.array(z.enum(['code', 'dependencies', 'documentation', 'history'])).default(["code","dependencies"]), depth: z.enum(['shallow', 'medium', 'deep']).default("medium") });
 
 export interface gatherContextInput extends z.infer<typeof gatherContextSchema> {}
 
