@@ -164,7 +164,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { MLXClient } from './client.js';
 
 /**
  * ${tool.description}

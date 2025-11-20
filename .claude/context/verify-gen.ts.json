@@ -1,0 +1,35 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/verify-gen.ts",
+  "context": {
+    "summary": ".TS file (43 lines, 1.3KB) - 3 imports, 0 exports, ~1 functions",
+    "dependencies": [
+      "./progressive-disclosure.js",
+      "fs",
+      "path"
+    ],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/progressive-disclosure.js"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T04:46:50.866Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mcp-server/src/verify-gen.ts",
+        "timestamp": "2025-11-20T04:46:50.876Z"
+      }
+    ],
+    "fileType": ".ts",
+    "complexity": "simple",
+    "suggestions": [
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-20T04:46:50.876Z",
+  "expiresAt": "2025-11-20T05:46:50.876Z"
+}

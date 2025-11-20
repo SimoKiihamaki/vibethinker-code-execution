@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Analyze specific function or method for complexity and best practices

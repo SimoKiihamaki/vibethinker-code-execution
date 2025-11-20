@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../shared/utils.js';
+import { estimateTokens } from '../shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices

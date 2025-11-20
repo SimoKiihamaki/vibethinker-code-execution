@@ -1,0 +1,54 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/servers/repo-search/analyzeImports.ts",
+  "context": {
+    "summary": ".TS file (128 lines, 3.1KB) - 4 imports, 3 exports, ~4 functions",
+    "dependencies": [
+      "zod",
+      "../shared/utils.js"
+    ],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/servers/shared/utils.js"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "4f16039 fix: resolve all PR review items",
+        "timestamp": "2025-11-20T05:16:49.318Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "3136d1b fix: resolve review items from PR #2",
+        "timestamp": "2025-11-20T05:16:49.318Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T05:16:49.318Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "5bf0693 refactor: cleanup codebase and fix critical server bugs (#1)",
+        "timestamp": "2025-11-20T05:16:49.318Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "375dcdc feat: update server configurations and add new tool modules",
+        "timestamp": "2025-11-20T05:16:49.318Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mcp-server/servers/repo-search/analyzeImports.ts",
+        "timestamp": "2025-11-20T05:16:49.326Z"
+      }
+    ],
+    "fileType": ".ts",
+    "complexity": "moderate",
+    "suggestions": [
+      "Consider adding TypeScript types if not present",
+      "Check for proper error handling",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-20T05:16:49.327Z",
+  "expiresAt": "2025-11-20T06:16:49.327Z"
+}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../shared/utils.js';
+import { estimateTokens } from '../shared/utils.js';
 
 /**
  * Synthesize multiple analysis findings into coherent architectural insights

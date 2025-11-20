@@ -1,13 +1,15 @@
 {
   "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/orchestrator.ts",
   "context": {
-    "summary": ".TS file (314 lines, 8.6KB) - 5 imports, 3 exports, ~0 functions",
+    "summary": ".TS file (425 lines, 12.1KB) - 7 imports, 3 exports, ~1 functions",
     "dependencies": [
       "zod",
       "winston",
       "chalk",
       "./client.js",
-      "./tools/registry.js"
+      "./tools/registry.js",
+      "fs/promises",
+      "path"
     ],
     "relatedFiles": [
       "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/client.js",
@@ -16,13 +18,28 @@
     "recentChanges": [
       {
         "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T04:53:13.141Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "5bf0693 refactor: cleanup codebase and fix critical server bugs (#1)",
+        "timestamp": "2025-11-20T04:53:13.142Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "375dcdc feat: update server configurations and add new tool modules",
+        "timestamp": "2025-11-20T04:53:13.142Z"
+      },
+      {
+        "type": "git-commit",
         "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
-        "timestamp": "2025-11-13T20:20:34.176Z"
+        "timestamp": "2025-11-20T04:53:13.142Z"
       },
       {
         "type": "git-status",
         "description": "M mcp-server/src/orchestrator.ts",
-        "timestamp": "2025-11-13T20:20:34.186Z"
+        "timestamp": "2025-11-20T04:53:13.151Z"
       }
     ],
     "fileType": ".ts",
@@ -34,6 +51,6 @@
       "Consider adding tests for this file"
     ]
   },
-  "cachedAt": "2025-11-13T20:20:34.186Z",
-  "expiresAt": "2025-11-13T21:20:34.186Z"
+  "cachedAt": "2025-11-20T04:53:13.152Z",
+  "expiresAt": "2025-11-20T05:53:13.152Z"
 }

@@ -216,7 +216,7 @@ export class ToolRegistry {
           for (const f of files) {
             let c = '';
             try { c = await fs.readFile(f, 'utf8'); } catch (err) {
-              winston.debug(`Failed to read file ${f}: ${err}`);
+              logger.debug(`Failed to read file ${f}: ${err}`);
               continue;
             }
             const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
@@ -543,7 +543,7 @@ export class ToolRegistry {
               }
             }
           } catch (e) {
-            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+            logger.debug(`Failed to analyze patterns in directory: ${e}`);
           }
 
           return {
@@ -577,7 +577,7 @@ export class ToolRegistry {
               if (c.includes('var ')) issues.push({ type: 'code-smell', message: 'Use let/const', file: target });
             }
           } catch (e) {
-            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+            logger.debug(`Failed to analyze patterns in directory: ${e}`);
           }
 
           return {
@@ -759,7 +759,7 @@ export class ToolRegistry {
                 }
               }
             } catch (e) {
-            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+            logger.debug(`Failed to analyze patterns in directory: ${e}`);
           }
           }
 

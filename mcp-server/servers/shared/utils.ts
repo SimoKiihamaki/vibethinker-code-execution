@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../client.js';
 
 let cachedClient: MLXClient | null = null;
 

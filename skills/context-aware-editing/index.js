@@ -2,6 +2,31 @@ const fs = require('fs').promises;
 const path = require('path');
 
 /**
+ * Parse context size string to number
+ * @param {string|number} size - Size string (e.g., '2k', '1m') or number
+ * @returns {number} Parsed size in tokens
+ */
+function parseContextSize(size) {
+  if (typeof size === 'number') return size;
+
+  if (typeof size === 'string') {
+    const match = size.toLowerCase().match(/^(\d+)([km]?)$/);
+    if (match) {
+      const [, num, unit] = match;
+      const value = parseInt(num, 10);
+      switch (unit) {
+        case 'k': return value * 1000;
+        case 'm': return value * 1000000;
+        default: return value;
+      }
+    }
+  }
+
+  // Default fallback
+  return 2000;
+}
+
+/**
  * Context-Aware Editing Skill
  * Provides intelligent code editing capabilities with context awareness
  */
@@ -14,7 +39,7 @@ class ContextAwareEditing {
       validateChanges: options.validateChanges !== false,
       safetyLevel: options.safetyLevel || 'high',
       contextDepth: options.contextDepth || 3,
-      maxContextSize: options.maxContextSize || '2k',
+      maxContextSize: parseContextSize(options.maxContextSize || '2k'),
       ...options
     };
 

@@ -1,0 +1,40 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx-servers/config.json",
+  "context": {
+    "summary": ".JSON file (59 lines, 1.4KB) - 5 top-level keys",
+    "dependencies": [],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx-servers/ecosystem.config.cjs"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T04:45:13.366Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "375dcdc feat: update server configurations and add new tool modules",
+        "timestamp": "2025-11-20T04:45:13.367Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-20T04:45:13.367Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M mlx-servers/config.json",
+        "timestamp": "2025-11-20T04:45:13.375Z"
+      }
+    ],
+    "fileType": ".json",
+    "complexity": "moderate",
+    "suggestions": [
+      "Validate JSON structure and schema",
+      "Consider adding tests for this file"
+    ]
+  },
+  "cachedAt": "2025-11-20T04:45:13.376Z",
+  "expiresAt": "2025-11-20T05:45:13.376Z"
+}

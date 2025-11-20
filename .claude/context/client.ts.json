@@ -1,25 +1,42 @@
 {
   "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mcp-server/src/client.ts",
   "context": {
-    "summary": ".TS file (295 lines, 8.9KB) - 5 imports, 1 exports, ~7 functions",
+    "summary": ".TS file (293 lines, 8.8KB) - 7 imports, 1 exports, ~1 functions",
     "dependencies": [
       "axios",
       "zod",
       "winston",
       "chalk",
-      "p-queue"
+      "p-queue",
+      "fs",
+      "path"
     ],
     "relatedFiles": [],
     "recentChanges": [
       {
         "type": "git-commit",
+        "description": "3136d1b fix: resolve review items from PR #2",
+        "timestamp": "2025-11-20T04:55:53.521Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T04:55:53.521Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "375dcdc feat: update server configurations and add new tool modules",
+        "timestamp": "2025-11-20T04:55:53.521Z"
+      },
+      {
+        "type": "git-commit",
         "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
-        "timestamp": "2025-11-13T19:53:39.320Z"
+        "timestamp": "2025-11-20T04:55:53.521Z"
       },
       {
         "type": "git-status",
         "description": "M mcp-server/src/client.ts",
-        "timestamp": "2025-11-13T19:53:39.329Z"
+        "timestamp": "2025-11-20T04:55:53.529Z"
       }
     ],
     "fileType": ".ts",
@@ -31,6 +48,6 @@
       "Consider adding tests for this file"
     ]
   },
-  "cachedAt": "2025-11-13T19:53:39.329Z",
-  "expiresAt": "2025-11-13T20:53:39.329Z"
+  "cachedAt": "2025-11-20T04:55:53.529Z",
+  "expiresAt": "2025-11-20T05:55:53.529Z"
 }

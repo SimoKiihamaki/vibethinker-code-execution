@@ -1,0 +1,38 @@
+{
+  "filePath": "/Users/simo/Documents/trae_projects/vibethinker-code-execution/DEPLOYMENT_GUIDE.md",
+  "context": {
+    "summary": ".MD file (344 lines, 7.5KB) - 113 headings",
+    "dependencies": [],
+    "relatedFiles": [
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/mlx_enhanced_config.json",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/optimized_lb_config.json",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/tsconfig.json",
+      "/Users/simo/Documents/trae_projects/vibethinker-code-execution/vitest.config.js"
+    ],
+    "recentChanges": [
+      {
+        "type": "git-commit",
+        "description": "b40b6d0 chore: sync workspace changes",
+        "timestamp": "2025-11-20T05:03:49.304Z"
+      },
+      {
+        "type": "git-commit",
+        "description": "8fde404 feat: initial commit - MLX-Powered Agentic RAG System",
+        "timestamp": "2025-11-20T05:03:49.304Z"
+      },
+      {
+        "type": "git-status",
+        "description": "M DEPLOYMENT_GUIDE.md",
+        "timestamp": "2025-11-20T05:03:49.313Z"
+      }
+    ],
+    "fileType": ".md",
+    "complexity": "complex",
+    "suggestions": [
+      "Consider adding more documentation or comments",
+      "Check for broken links and formatting"
+    ]
+  },
+  "cachedAt": "2025-11-20T05:03:49.314Z",
+  "expiresAt": "2025-11-20T06:03:49.314Z"
+}

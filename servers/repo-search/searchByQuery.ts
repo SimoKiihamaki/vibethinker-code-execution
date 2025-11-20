@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Search repository by natural language query using ripgrep and semantic understanding

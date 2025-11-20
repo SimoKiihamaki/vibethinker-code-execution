@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../shared/utils.js';
+import { estimateTokens } from '../shared/utils.js';
 
 /**
  * Identify architectural patterns and design principles

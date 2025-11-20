@@ -40,7 +40,6 @@ export async function analyzeImports(input: analyzeImportsInput): Promise<analyz
   const prompt = buildanalyzeImportsPrompt(validatedInput);
   
   // Execute through MLX backend
-  const startTime = Date.now();
   
   try {
     const result = await mlxClient.generateCompletion(prompt, {

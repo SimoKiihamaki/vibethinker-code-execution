@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../shared/utils.js';
+import { estimateTokens } from '../shared/utils.js';
 
 /**
  * Search repository by natural language query using ripgrep and semantic understanding
