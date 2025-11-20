@@ -1,5 +1,4 @@
 
-import { ToolRegistry } from './tools/registry.js';
 import { ProgressiveDisclosureGenerator } from './progressive-disclosure.js';
 import * as fs from 'fs';
 import * as path from 'path';

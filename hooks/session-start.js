@@ -543,7 +543,7 @@ async function startMLXServers() {
       
       // Start servers using Python
       console.error('Starting MLX servers...');
-      spawn('python3', ['mlx-servers/enhanced_server_manager.py', '--config', 'mlx_enhanced_config.json', '--port', '8091'], {
+      spawn('python3', ['mlx-servers/enhanced_server_manager.py', '--config', 'config.json', '--port', '8091'], {
         detached: true,
         stdio: 'ignore',
         cwd: process.cwd()

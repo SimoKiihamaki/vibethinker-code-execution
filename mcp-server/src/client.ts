@@ -64,7 +64,7 @@ export class MLXClient {
     logger.info('Initializing MLX client (connecting to Load Balancer)...');
 
     let model = 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit';
-    let loadBalancerPort = 8107;
+    let loadBalancerPort = 8090;
 
     try {
       // Try to locate config.json relative to CWD or __dirname
@@ -82,9 +82,8 @@ export class MLXClient {
         if (configData.mlx_servers?.model_path) {
           model = configData.mlx_servers.model_path;
         }
-        if (typeof configData.mlx_servers?.base_port === 'number') {
-          loadBalancerPort = configData.mlx_servers.base_port;
-        }
+        // Load balancer runs on port 8090, not on MLX base_port
+        loadBalancerPort = 8090;
         logger.info(`Loaded config from ${configPath}`);
       } else {
         logger.warn('Config file not found, using defaults');
