@@ -1,15 +1,5 @@
 import { z } from 'zod';
-import { estimateTokens } from '../shared/utils.js';
-
-let cachedClient: MLXClient | null = null;
-
-async function getMLXClient(): Promise<MLXClient> {
-  if (cachedClient) return cachedClient;
-  const client = new MLXClient();
-  await client.initialize();
-  cachedClient = client;
-  return client;
-}
+import { getMLXClient, estimateTokens } from '../shared/utils.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -128,9 +118,3 @@ function parseSummarizeModuleResult(result: string, input: summarizeModuleInput)
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
