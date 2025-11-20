@@ -164,7 +164,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { getMLXClient } from '../../../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * ${tool.description}
@@ -393,7 +393,7 @@ export function discoverTools(query?: string) {
     if (schema instanceof z.ZodNumber) {
       let num = 'z.number()';
       if (schema.description) num += `.describe('${schema.description.replace(/'/g, "\\'")}')`;
-      if (schema.isInt) num += '.int()';
+      if (schema._def?.checks?.some((check: any) => check.kind === 'int')) num += '.int()';
       return num;
     }
 

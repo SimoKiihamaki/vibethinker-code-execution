@@ -426,8 +426,8 @@ class OptimizedMLXServer:
             messages = request_data.get("messages", [])
 
             # Apply chat template
-            if hasattr(self.tokenizer, "apply_chat_template"):
-                prompt = self.tokenizer.apply_chat_template(
+            if hasattr(self.model.tokenizer, "apply_chat_template"):
+                prompt = self.model.tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=True
                 )
             else:
