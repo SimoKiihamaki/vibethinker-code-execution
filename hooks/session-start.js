@@ -7,7 +7,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 /**
  * Main hook function that initializes session
@@ -501,8 +501,8 @@ async function initializeMLXBackend() {
       mlx.instances = mlxConfig.servers?.length || 0;
       mlx.loadBalancer = mlxConfig.loadBalancer || false;
       
-      // Try to start MLX servers if not running
-      if (mlx.instances > 0) {
+      // Try to start MLX servers if not running (only if opt-in)
+      if (mlx.instances > 0 && process.env.AUTO_START_MLX === 'true') {
         const startResult = await startMLXServers();
         mlx.status = startResult.success ? 'running' : 'failed';
         mlx.issues.push(...startResult.issues);
@@ -537,13 +537,17 @@ async function startMLXServers() {
   
   try {
     // Check if server manager exists
-    const serverManagerPath = path.join(process.cwd(), 'mlx-servers', 'server_manager.py');
+    const serverManagerPath = path.join(process.cwd(), 'mlx-servers', 'enhanced_server_manager.py');
     try {
       await fs.access(serverManagerPath);
       
       // Start servers using Python
       console.error('Starting MLX servers...');
-      execSync('python3 mlx-servers/server_manager.py start', { stdio: 'ignore' });
+      spawn('python3', ['mlx-servers/enhanced_server_manager.py', '--config', 'mlx_enhanced_config.json', '--port', '8091'], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: process.cwd()
+      }).unref();
       
       // Wait a moment for servers to start
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -584,7 +588,7 @@ async function checkMLXPerformance() {
   try {
     // Check if load balancer is running
     try {
-      const healthResponse = execSync('curl -s http://localhost:8080/health || true', { encoding: 'utf8' });
+      const healthResponse = execSync('curl -s http://localhost:8090/health || true', { encoding: 'utf8' });
       if (healthResponse) {
         const healthData = JSON.parse(healthResponse);
         performance.lastHealthCheck = healthData;

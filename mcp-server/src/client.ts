@@ -3,6 +3,8 @@ import { z } from 'zod';
 import winston from 'winston';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const logger = winston.createLogger({
   level: 'info',
@@ -36,7 +38,7 @@ const MLXServerConfig = z.object({
 
 type MLXServerConfig = z.infer<typeof MLXServerConfig>;
 
-interface MLXInstance {
+interface LoadBalancerConnection {
   id: number;
   config: MLXServerConfig;
   healthy: boolean;
@@ -46,61 +48,80 @@ interface MLXInstance {
 }
 
 export class MLXClient {
-  private instances: MLXInstance[] = [];
+  private loadBalancer: LoadBalancerConnection | null = null;
   private queue: PQueue;
   private healthCheckInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 27, // 27 concurrent MLX instances
+      concurrency: 27, // Load Balancer manages concurrent instances
       interval: 1000,
       intervalCap: 100,
     });
   }
 
   async initialize(): Promise<void> {
-    logger.info('Initializing MLX client with 27 instances...');
+    logger.info('Initializing MLX client (connecting to Load Balancer)...');
 
-    // Create 27 MLX instances on ports 8107-8133
-    for (let i = 0; i < 27; i++) {
-      const port = 8107 + i;
-      const instance: MLXInstance = {
-        id: i,
-        config: {
-          host: 'localhost',
-          port,
-          model: 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit',
-          max_tokens: 32768,
-          temperature: 1.0,
-          top_p: 0.95,
-          top_k: 20,
-          repetition_penalty: 1.0,
-          presence_penalty: 1.5,
-          greedy: false,
-          out_seq_length: 32768,
-        },
-        healthy: false, // Start as unhealthy, health check will validate
-        lastUsed: Date.now(),
-        requestCount: 0,
-        responseTime: 0,
-      };
+    let model = 'lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit';
+    let loadBalancerPort = 8107;
 
-      this.instances.push(instance);
+    try {
+      // Try to locate config.json relative to CWD or __dirname
+      const possiblePaths = [
+        path.resolve(process.cwd(), '../mlx-servers/config.json'),
+        path.resolve(process.cwd(), 'mlx-servers/config.json'),
+        path.resolve(__dirname, '../../mlx-servers/config.json'),
+        path.resolve(__dirname, '../../../mlx-servers/config.json')
+      ];
+
+      const configPath = possiblePaths.find(p => fs.existsSync(p));
+
+      if (configPath) {
+        const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        if (configData.mlx_servers?.model_path) {
+          model = configData.mlx_servers.model_path;
+        }
+        if (typeof configData.mlx_servers?.base_port === 'number') {
+          loadBalancerPort = configData.mlx_servers.base_port;
+        }
+        logger.info(`Loaded config from ${configPath}`);
+      } else {
+        logger.warn('Config file not found, using defaults');
+      }
+    } catch (error) {
+      logger.warn('Failed to load config, using defaults', error);
     }
+
+    this.loadBalancer = {
+      id: 0,
+      config: {
+        host: 'localhost',
+        port: loadBalancerPort,
+        model,
+        max_tokens: 32768,
+        temperature: 1.0,
+        top_p: 0.95,
+        top_k: 20,
+        repetition_penalty: 1.0,
+        presence_penalty: 1.5,
+        greedy: false,
+        out_seq_length: 32768,
+      },
+      healthy: false,
+      lastUsed: Date.now(),
+      requestCount: 0,
+      responseTime: 0,
+    };
 
     // Perform initial health check
     await this.performHealthCheck();
 
-    const healthyCount = this.instances.filter(i => i.healthy).length;
-
-    if (healthyCount === 0) {
-      logger.warn(chalk.yellow('⚠️  No MLX instances are currently available'));
-      logger.warn(chalk.yellow('Tools requiring MLX backend will be disabled'));
-      logger.warn(chalk.yellow('Please start MLX instances on ports 8107-8133'));
-    } else if (healthyCount < this.instances.length) {
-      logger.warn(chalk.yellow(`⚠️  Only ${healthyCount}/${this.instances.length} MLX instances available`));
+    if (!this.loadBalancer.healthy) {
+      logger.warn(chalk.yellow(`⚠️  Load Balancer not available on port ${loadBalancerPort}`));
+      logger.warn(chalk.yellow('Please ensure mlx-servers are running'));
     } else {
-      logger.info(chalk.green(`✅ All ${this.instances.length} MLX instances healthy`));
+      logger.info(chalk.green(`✅ Connected to MLX Load Balancer`));
     }
 
     // Start health monitoring
@@ -112,25 +133,23 @@ export class MLXClient {
     options: Partial<MLXServerConfig> = {}
   ): Promise<string> {
     return this.queue.add(async () => {
-      const instance = this.selectBestInstance();
-
-      if (!instance) {
-        const msg = 'No healthy MLX instances available. Please ensure MLX servers are running on ports 8107-8133.';
+      if (!this.loadBalancer || !this.loadBalancer.healthy) {
+        const msg = 'Load Balancer not available. Please ensure MLX servers are running on port 8090.';
         logger.error(msg);
         throw new Error(msg);
       }
 
       const startTime = Date.now();
-      
+
       try {
         const response = await axios.post(
-          `http://${instance.config.host}:${instance.config.port}/v1/completions`,
+          `http://${this.loadBalancer.config.host}:${this.loadBalancer.config.port}/v1/completions`,
           {
-            model: instance.config.model,
+            model: this.loadBalancer.config.model,
             prompt,
-            max_tokens: options.max_tokens || instance.config.max_tokens,
-            temperature: options.temperature || instance.config.temperature,
-            top_p: options.top_p || instance.config.top_p,
+            max_tokens: options.max_tokens || this.loadBalancer.config.max_tokens,
+            temperature: options.temperature || this.loadBalancer.config.temperature,
+            top_p: options.top_p || this.loadBalancer.config.top_p,
             stream: false,
           },
           {
@@ -142,21 +161,21 @@ export class MLXClient {
         );
 
         const responseTime = Date.now() - startTime;
-        
-        // Update instance metrics
-        instance.lastUsed = Date.now();
-        instance.requestCount++;
-        instance.responseTime = responseTime;
-        
+
+        // Update metrics
+        this.loadBalancer.lastUsed = Date.now();
+        this.loadBalancer.requestCount++;
+        this.loadBalancer.responseTime = responseTime;
+
         logger.debug(
-          `MLX instance ${instance.id} completed in ${chalk.cyan(responseTime + 'ms')}`
+          `MLX Load Balancer completed request in ${chalk.cyan(responseTime + 'ms')}`
         );
-        
+
         return response.data.choices[0]?.text || '';
-        
+
       } catch (error) {
-        logger.error(`MLX instance ${instance.id} failed:`, error);
-        instance.healthy = false;
+        logger.error(`MLX Load Balancer request failed:`, error);
+        if (this.loadBalancer) this.loadBalancer.healthy = false;
         throw error;
       }
     });
@@ -167,25 +186,23 @@ export class MLXClient {
     options: Partial<MLXServerConfig> = {}
   ): Promise<string> {
     return this.queue.add(async () => {
-      const instance = this.selectBestInstance();
-
-      if (!instance) {
-        const msg = 'No healthy MLX instances available. Please ensure MLX servers are running on ports 8107-8133.';
+      if (!this.loadBalancer || !this.loadBalancer.healthy) {
+        const msg = 'Load Balancer not available. Please ensure MLX servers are running on port 8090.';
         logger.error(msg);
         throw new Error(msg);
       }
 
       const startTime = Date.now();
-      
+
       try {
         const response = await axios.post(
-          `http://${instance.config.host}:${instance.config.port}/v1/chat/completions`,
+          `http://${this.loadBalancer.config.host}:${this.loadBalancer.config.port}/v1/chat/completions`,
           {
-            model: instance.config.model,
+            model: this.loadBalancer.config.model,
             messages,
-            max_tokens: options.max_tokens || instance.config.max_tokens,
-            temperature: options.temperature || instance.config.temperature,
-            top_p: options.top_p || instance.config.top_p,
+            max_tokens: options.max_tokens || this.loadBalancer.config.max_tokens,
+            temperature: options.temperature || this.loadBalancer.config.temperature,
+            top_p: options.top_p || this.loadBalancer.config.top_p,
             stream: false,
           },
           {
@@ -197,88 +214,69 @@ export class MLXClient {
         );
 
         const responseTime = Date.now() - startTime;
-        
-        // Update instance metrics
-        instance.lastUsed = Date.now();
-        instance.requestCount++;
-        instance.responseTime = responseTime;
-        
+
+        // Update metrics
+        this.loadBalancer.lastUsed = Date.now();
+        this.loadBalancer.requestCount++;
+        this.loadBalancer.responseTime = responseTime;
+
         logger.debug(
-          `MLX instance ${instance.id} chat completed in ${chalk.cyan(responseTime + 'ms')}`
+          `MLX Load Balancer completed chat request in ${chalk.cyan(responseTime + 'ms')}`
         );
-        
+
         return response.data.choices[0]?.message?.content || '';
-        
+
       } catch (error) {
-        logger.error(`MLX instance ${instance.id} chat failed:`, error);
-        instance.healthy = false;
+        logger.error(`MLX Load Balancer chat request failed:`, error);
+        if (this.loadBalancer) this.loadBalancer.healthy = false;
         throw error;
       }
     });
   }
 
-  private selectBestInstance(): MLXInstance | null {
-    const healthyInstances = this.instances.filter(instance => instance.healthy);
-    
-    if (healthyInstances.length === 0) {
-      return null;
-    }
 
-    // Select instance with lowest request count and fastest response time
-    return healthyInstances.reduce((best, current) => {
-      const currentScore = current.requestCount * 0.5 + current.responseTime * 0.5;
-      const bestScore = best.requestCount * 0.5 + best.responseTime * 0.5;
-      
-      return currentScore < bestScore ? current : best;
-    });
-  }
 
   private async performHealthCheck(): Promise<void> {
-    const healthChecks = this.instances.map(async (instance) => {
-      try {
-        const response = await axios.get(
-          `http://${instance.config.host}:${instance.config.port}/health`,
-          { timeout: 600000 }
-        );
+    if (!this.loadBalancer) return;
 
-        if (response.status === 200) {
-          instance.healthy = true;
-        } else {
-          instance.healthy = false;
-        }
-      } catch (error) {
-        instance.healthy = false;
-        logger.debug(`MLX instance ${instance.id} on port ${instance.config.port} not available`);
+    try {
+      const response = await axios.get(
+        `http://${this.loadBalancer.config.host}:${this.loadBalancer.config.port}/health`,
+        { timeout: 5000 }
+      );
+
+      if (response.status === 200) {
+        this.loadBalancer.healthy = true;
+      } else {
+        this.loadBalancer.healthy = false;
       }
-    });
-
-    await Promise.all(healthChecks);
+    } catch (error) {
+      this.loadBalancer.healthy = false;
+      logger.debug(`MLX Load Balancer on port ${this.loadBalancer.config.port} not available`);
+    }
   }
 
   private startHealthMonitoring(): void {
     this.healthCheckInterval = setInterval(async () => {
       await this.performHealthCheck();
-
-      const healthyCount = this.instances.filter(i => i.healthy).length;
-      logger.debug(`Health check: ${healthyCount}/${this.instances.length} instances healthy`);
-
-    }, 600000); // Check every 600 seconds
+      if (this.loadBalancer?.healthy) {
+        logger.debug(`Health check: Load Balancer is healthy`);
+      } else {
+        logger.debug(`Health check: Load Balancer is UNHEALTHY`);
+      }
+    }, 30000); // Check every 30 seconds
   }
 
   isAvailable(): boolean {
-    return this.instances.filter(i => i.healthy).length > 0;
+    return this.loadBalancer?.healthy || false;
   }
 
   getMetrics() {
-    const healthyInstances = this.instances.filter(i => i.healthy).length;
-    const totalRequests = this.instances.reduce((sum, i) => sum + i.requestCount, 0);
-    const avgResponseTime = this.instances.reduce((sum, i) => sum + i.responseTime, 0) / this.instances.length;
-
     return {
-      healthyInstances,
-      totalInstances: this.instances.length,
-      totalRequests,
-      avgResponseTime,
+      healthyInstances: this.loadBalancer?.healthy ? 1 : 0,
+      totalInstances: 1,
+      totalRequests: this.loadBalancer?.requestCount || 0,
+      avgResponseTime: this.loadBalancer?.responseTime || 0,
       queueSize: this.queue.size,
       queuePending: this.queue.pending,
     };
@@ -288,7 +286,7 @@ export class MLXClient {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-    
+
     await this.queue.onIdle();
     logger.info('MLX client shutdown complete');
   }

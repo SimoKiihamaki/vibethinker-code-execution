@@ -7,7 +7,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 
 /**
  * Main hook function that processes the tool use request
@@ -335,7 +335,7 @@ async function getRecentChanges(filePath) {
   
   try {
     // Use git to get recent changes
-    const gitLog = execSync(`git log --oneline -5 -- "${filePath}"`, { encoding: 'utf8', cwd: process.cwd() });
+    const gitLog = execFileSync('git', ['log', '--oneline', '-5', '--', filePath], { encoding: 'utf8', cwd: process.cwd() });
     
     if (gitLog) {
       changes.push(...gitLog.trim().split('\n').map(line => ({
@@ -346,7 +346,7 @@ async function getRecentChanges(filePath) {
     }
     
     // Check git status
-    const gitStatus = execSync(`git status --porcelain -- "${filePath}"`, { encoding: 'utf8', cwd: process.cwd() });
+    const gitStatus = execFileSync('git', ['status', '--porcelain', '--', filePath], { encoding: 'utf8', cwd: process.cwd() });
     
     if (gitStatus) {
       changes.push({

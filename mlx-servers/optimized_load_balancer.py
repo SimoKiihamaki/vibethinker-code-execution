@@ -188,7 +188,7 @@ class OptimizedMLXLoadBalancer:
         
         # Initialize instances
         self._initialize_instances()
-        self._start_background_tasks()
+        # self._start_background_tasks() - Moved to on_startup
     
     def _initialize_instances(self):
         """Initialize MLX instances with optimized configuration"""
@@ -411,63 +411,91 @@ class OptimizedMLXLoadBalancer:
         else:
             # Default to performance-based selection
             return max(healthy_instances, key=lambda x: x.performance_score)
+
+    async def _forward_to_instance(
+        self,
+        instance: OptimizedMLXInstance,
+        request_data: Dict[str, Any],
+        url: str,
+        estimated_tokens: float,
+        timeout: float
+    ) -> tuple[Dict[str, Any], int, float, float]:
+        """Shared HTTP forwarding helper that captures response status inside context."""
+        start_time = time.time()
+        instance.active_requests += 1
+        status_code = None
+        response_data: Dict[str, Any] = {}
+
+        try:
+            session = self.connection_pool if self.connection_pool and not self.connection_pool.closed else None
+
+            if session:
+                async with session.post(url, json=request_data, timeout=timeout) as response:
+                    status_code = response.status
+                    response_data = await response.json()
+            else:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as temp_session:
+                    async with temp_session.post(url, json=request_data) as response:
+                        status_code = response.status
+                        response_data = await response.json()
+
+            # Update tokens from actual usage if available
+            total_tokens_count = (
+                response_data.get('usage', {}).get('total_tokens', estimated_tokens)
+            )
+
+            response_time = (time.time() - start_time) * 1000
+            instance.response_times.append(response_time)
+            instance.total_requests += 1
+            instance.tokens_processed += total_tokens_count
+
+            current_throughput = total_tokens_count / (response_time / 1000) if response_time > 0 else 0
+            instance.throughput_history.append(current_throughput)
+
+            if status_code == 200:
+                instance.successful_requests += 1
+                self.circuit_breakers[instance.id].record_success()
+            else:
+                instance.failed_requests += 1
+                self.circuit_breakers[instance.id].record_failure()
+
+            return response_data, status_code or 0, response_time, current_throughput
+
+        except Exception as e:
+            instance.failed_requests += 1
+            self.circuit_breakers[instance.id].record_failure()
+            logger.error(f"Request to instance {instance.id} failed: {e}")
+            raise
+
+        finally:
+            instance.active_requests -= 1
+            instance.last_used = time.time()
     
     async def forward_request(self, instance: OptimizedMLXInstance, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Optimized request forwarding with batching and connection pooling"""
-        start_time = time.time()
-        instance.active_requests += 1
-        
         try:
             # Extract token count for throughput calculation
             estimated_tokens = len(request_data.get('prompt', '').split()) * 1.3  # Rough estimate
             
             timeout = self.config['performance']['request_timeout'] / 1000
             url = f"http://{instance.host}:{instance.port}/v1/completions"
-            
-            # Use connection pool if available
-            session = self.connection_pool if self.connection_pool and not self.connection_pool.closed else None
-            
-            if session:
-                async with session.post(url, json=request_data, timeout=timeout) as response:
-                    response_data = await response.json()
-            else:
-                # Fallback to new session
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as temp_session:
-                    async with temp_session.post(url, json=request_data) as response:
-                        response_data = await response.json()
-            
-            # Record performance metrics
-            response_time = (time.time() - start_time) * 1000
-            instance.response_times.append(response_time)
-            instance.total_requests += 1
-            instance.successful_requests += 1
-            instance.tokens_processed += estimated_tokens
-            
-            # Calculate current throughput
-            current_throughput = estimated_tokens / (response_time / 1000)
-            instance.throughput_history.append(current_throughput)
-            
-            if response.status == 200:
-                self.circuit_breakers[instance.id].record_success()
-                logger.debug(f"Request to instance {instance.id} completed in {response_time:.2f}ms, "
-                           f"throughput: {current_throughput:.0f} tokens/sec")
+            response_data, status_code, response_time, current_throughput = await self._forward_to_instance(
+                instance, request_data, url, estimated_tokens, timeout
+            )
+
+            if status_code == 200:
+                logger.debug(
+                    f"Request to instance {instance.id} completed in {response_time:.2f}ms, "
+                    f"throughput: {current_throughput:.0f} tokens/sec"
+                )
                 return response_data
-            else:
-                self.circuit_breakers[instance.id].record_failure()
-                logger.error(f"Request to instance {instance.id} failed with status {response.status}")
-                
-                # Implement retry logic with exponential backoff
-                return await self._retry_request(instance, request_data, url, timeout, max_retries=2)
+
+            logger.error(f"Request to instance {instance.id} failed with status {status_code}")
+            return await self._retry_request(instance, request_data, url, timeout, max_retries=2)
                 
         except Exception as e:
-            instance.failed_requests += 1
-            self.circuit_breakers[instance.id].record_failure()
             logger.error(f"Request to instance {instance.id} failed: {e}")
             raise
-        
-        finally:
-            instance.active_requests -= 1
-            instance.last_used = time.time()
     
     async def _retry_request(self, instance: OptimizedMLXInstance, request_data: Dict[str, Any], 
                            url: str, timeout: float, max_retries: int) -> Dict[str, Any]:
@@ -531,6 +559,66 @@ class OptimizedMLXLoadBalancer:
                 status=500
             )
     
+    async def handle_chat_completion_request(self, request: web.Request) -> web.Response:
+        """Handle chat completion requests with optimization"""
+        try:
+            request_data = await request.json()
+            
+            # Select best instance using performance algorithm
+            instance = self.select_instance('performance')
+            
+            if not instance:
+                logger.error("No healthy MLX instances available")
+                return web.json_response(
+                    {'error': 'No healthy MLX instances available'}, 
+                    status=503
+                )
+            
+            # Forward request to selected instance
+            # Note: forward_request handles /v1/completions, we need to adapt it or create a new one for chat
+            # For simplicity and reuse, we'll modify forward_request to accept an endpoint or create a specific one.
+            # Let's create a specific one for chat to be safe and explicit.
+
+            try:
+                # Extract token count for throughput calculation (rough estimate)
+                messages = request_data.get('messages', [])
+                content = " ".join([m.get('content', '') for m in messages])
+                estimated_tokens = len(content.split()) * 1.3
+                
+                timeout = self.config['performance']['request_timeout'] / 1000
+                url = f"http://{instance.host}:{instance.port}/v1/chat/completions"
+
+                response_data, status_code, response_time, _ = await self._forward_to_instance(
+                    instance, request_data, url, estimated_tokens, timeout
+                )
+
+                if status_code == 200:
+                    logger.debug(f"Chat request to instance {instance.id} completed in {response_time:.2f}ms")
+
+                    response_data['_performance'] = {
+                        'instance_id': instance.id,
+                        'response_time': instance.average_response_time,
+                        'throughput': instance.current_throughput,
+                        'active_requests': instance.active_requests
+                    }
+
+                    return web.json_response(response_data)
+
+                logger.error(f"Chat request to instance {instance.id} failed with status {status_code}")
+                retry_response = await self._retry_request(instance, request_data, url, timeout, max_retries=2)
+                return web.json_response(retry_response)
+
+            except Exception as e:
+                logger.error(f"Chat request to instance {instance.id} failed: {e}")
+                raise
+            
+        except Exception as e:
+            logger.error(f"Error handling chat completion request: {e}")
+            return web.json_response(
+                {'error': f'Internal server error: {str(e)}'}, 
+                status=500
+            )
+    
     async def get_metrics(self) -> Dict[str, Any]:
         """Get comprehensive performance metrics"""
         total_tokens = sum(inst.tokens_processed for inst in self.instances)
@@ -575,7 +663,7 @@ class OptimizedMLXLoadBalancer:
         }
 
 # Web application setup
-async def create_optimized_app(config: Dict[str, Any]) -> web.Application:
+def create_optimized_app(config: Dict[str, Any]) -> web.Application:
     """Create optimized web application"""
     app = web.Application()
     load_balancer = OptimizedMLXLoadBalancer(config)
@@ -585,6 +673,7 @@ async def create_optimized_app(config: Dict[str, Any]) -> web.Application:
     
     # Setup routes
     app.router.add_post('/v1/completions', load_balancer.handle_completion_request)
+    app.router.add_post('/v1/chat/completions', load_balancer.handle_chat_completion_request)
     app.router.add_get('/health', lambda req: web.json_response({'status': 'healthy'}))
     
     async def metrics_handler(req):
@@ -603,7 +692,16 @@ async def create_optimized_app(config: Dict[str, Any]) -> web.Application:
                 logger.error(f"Background health check error: {e}")
                 await asyncio.sleep(10)
     
-    app.on_startup.append(lambda app: asyncio.create_task(background_health_checks(app)))
+    async def start_bg_checks(app):
+        asyncio.create_task(background_health_checks(app))
+        
+    app.on_startup.append(start_bg_checks)
+    
+    # Start load balancer background tasks
+    async def start_lb_tasks(app):
+        load_balancer._start_background_tasks()
+        
+    app.on_startup.append(start_lb_tasks)
     
     return app
 

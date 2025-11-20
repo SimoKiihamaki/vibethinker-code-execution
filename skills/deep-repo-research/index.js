@@ -1,6 +1,6 @@
-const fs = require('fs').promises;
-const path = require('path');
-const { execSync } = require('child_process');
+import { promises as fs } from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 /**
  * Deep Repository Research Skill
@@ -362,7 +362,7 @@ class DeepRepoResearch {
     documentation.coverage = (documentedFiles.length / fileAnalysis.length) * 100;
     
     // Assess documentation quality
-    documentation.quality = this.assessDocumentationQuality(documentedFiles);
+    documentation.quality = this.assessDocumentationQuality(fileAnalysis);
     
     return documentation;
   }
@@ -525,25 +525,231 @@ class DeepRepoResearch {
     return Math.max(0, score);
   }
 
-  // Placeholder methods for specific analysis
-  detectMVC(fileAnalysis) { return false; }
-  detectMicroservices(fileAnalysis, repoInfo) { return false; }
-  detectMonorepo(fileAnalysis, repoInfo) { return false; }
-  detectLayered(fileAnalysis) { return false; }
+  // Heuristic implementations for architectural detection
+  detectMVC(fileAnalysis) {
+    const paths = Array.isArray(fileAnalysis) ? fileAnalysis.map(f => f.path || f).filter(Boolean) : [];
+    for (const p of paths) {
+      if (p.match(/(models?|views?|controllers?)/i)) return true;
+    }
+    return false;
+  }
+
+  detectMicroservices(fileAnalysis, repoInfo) {
+    const paths = Array.isArray(fileAnalysis) ? fileAnalysis.map(f => f.path || f).filter(Boolean) : [];
+    if (paths.some(p => p.includes('docker-compose'))) return true;
+    // Count package.json files
+    const pkgCount = paths.filter(p => p.endsWith('package.json')).length;
+    return pkgCount > 2;
+  }
+
+  detectMonorepo(fileAnalysis, repoInfo) {
+    const paths = Array.isArray(fileAnalysis) ? fileAnalysis.map(f => f.path || f).filter(Boolean) : [];
+    return paths.some(p => 
+      p.includes('lerna.json') || 
+      p.includes('pnpm-workspace.yaml') || 
+      p.includes('nx.json') ||
+      p.includes('turbo.json') ||
+      (p.includes('packages/') && p.endsWith('package.json'))
+    );
+  }
+
+  detectLayered(fileAnalysis) {
+    const paths = Array.isArray(fileAnalysis) ? fileAnalysis.map(f => f.path || f).filter(Boolean) : [];
+    const layers = ['presentation', 'domain', 'data', 'application', 'infrastructure', 'services', 'repositories'];
+    let found = 0;
+    for (const l of layers) {
+      if (paths.some(p => p.toLowerCase().includes(l))) found++;
+    }
+    return found >= 3;
+  }
+
+  // Other stubs retained but simplified or documented
   identifyComponents(fileAnalysis) { return []; }
   analyzeRelationships(fileAnalysis) { return []; }
-  isExternalDependency(imp) { return !imp.startsWith('.'); }
+  isExternalDependency(imp) { return imp && !imp.startsWith('.'); }
   detectCircularDependencies(fileAnalysis) { return []; }
   generateDependencySummary(dependencies) { return {}; }
   calculateComplexityDistribution(files) { return {}; }
   hasDocumentation(file) { return false; }
-  isTestFile(file) { return file.path.includes('test') || file.path.includes('spec'); }
-  estimateTestCoverage(allFiles, testFiles) { return 0; }
-  assessDocumentationQuality(files) { return 0; }
+  isTestFile(file) { return (file.path || file).match(/(test|spec)/); }
+  estimateTestCoverage(allFiles, testFiles) { 
+    return allFiles.length > 0 ? (testFiles.length / allFiles.length) * 100 : 0; 
+  }
+  assessDocumentationQuality(files) {
+    if (!Array.isArray(files) || files.length === 0) return 0;
+
+    const paths = [];
+    let totalLines = 0;
+    let commentLines = 0;
+    let exportedEntities = 0;
+    let documentedExports = 0;
+    let readmeScore = 0;
+    let docsFolderScore = 0;
+    let changelogScore = 0;
+
+    const sourceExts = new Set(['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.go', '.rb', '.rs', '.cs', '.php']);
+
+    for (const file of files) {
+      const filePath = file?.path || file;
+      if (!filePath) continue;
+      paths.push(filePath);
+
+      const content = file?.content || '';
+      const ext = path.extname(filePath).toLowerCase();
+
+      // README metric
+      if (readmeScore === 0 && /readme/i.test(path.basename(filePath))) {
+        const lengthScore = Math.min(1, content.length / 2000); // 0 at empty, 1 at >=2000 chars
+        readmeScore = lengthScore * 100;
+      }
+
+      // Docs folder metric
+      if (filePath.toLowerCase().includes(`docs${path.sep}`) || path.basename(filePath).toLowerCase().startsWith('docs') && filePath.toLowerCase().endsWith('.md')) {
+        const sizeWeight = Math.min(1, (file.size || content.length) / 10000);
+        docsFolderScore = Math.max(docsFolderScore, sizeWeight * 100);
+      }
+
+      // Changelog / contributing metric
+      const base = path.basename(filePath).toLowerCase();
+      if (base.startsWith('changelog') || base === 'contributing.md' || base === 'contributing') {
+        changelogScore = 100;
+      }
+
+      // Comment metrics for source files
+      if (sourceExts.has(ext) && content) {
+        const lines = content.split('\n');
+        totalLines += lines.length;
+        commentLines += lines.filter(line => {
+          const trimmed = line.trim();
+          return trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*') || trimmed.startsWith('*');
+        }).length;
+
+        // Exported entity documentation coverage (basic JSDoc/typed comment detection)
+        const exportMatches = content.match(/export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)/g) || [];
+        exportedEntities += exportMatches.length;
+
+        const documentedRegex = /\/\*\*[\s\S]*?\*\/\s*export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)/g;
+        let docMatch;
+        while ((docMatch = documentedRegex.exec(content)) !== null) {
+          documentedExports += 1;
+        }
+      }
+    }
+
+    // Normalize metrics
+    const commentRatio = totalLines > 0 ? commentLines / totalLines : 0;
+    const commentScore = Math.min(1, commentRatio / 0.25) * 100; // 25% comments => full score
+
+    const jsdocCoverage = exportedEntities > 0 ? documentedExports / exportedEntities : 0;
+    const jsdocScore = Math.min(1, jsdocCoverage) * 100;
+
+    const weights = {
+      readme: 0.2,
+      comments: 0.3,
+      jsdoc: 0.3,
+      docs: 0.1,
+      changelog: 0.1
+    };
+
+    const weighted =
+      readmeScore * weights.readme +
+      commentScore * weights.comments +
+      jsdocScore * weights.jsdoc +
+      docsFolderScore * weights.docs +
+      changelogScore * weights.changelog;
+
+    return Math.round(weighted);
+  }
   getGitInfo(repoPath) { return {}; }
   getPackageInfo(repoPath) { return {}; }
   analyzeStructure(files) { return {}; }
-  identifyTechnologyStack(files, packageInfo) { return []; }
+  identifyTechnologyStack(files, packageInfo) {
+    const tech = new Set();
+    const safeDeps = (obj) => (obj && typeof obj === 'object') ? Object.keys(obj) : [];
+    const addTech = (name) => name && tech.add(name);
+
+    // Package-based detection (priority)
+    const deps = [...safeDeps(packageInfo?.dependencies), ...safeDeps(packageInfo?.devDependencies)];
+    deps.forEach(dep => {
+      const lower = dep.toLowerCase();
+      if (lower === 'react' || lower === 'react-dom') addTech('React');
+      if (lower === 'next' || lower === 'next.js') addTech('Next.js');
+      if (lower === 'express') addTech('Express');
+      if (lower === 'koa') addTech('Koa');
+      if (lower === 'fastify') addTech('Fastify');
+      if (lower.startsWith('@nestjs')) addTech('NestJS');
+      if (lower === 'typescript' || lower === 'ts-node') addTech('TypeScript');
+      if (lower === 'vite') addTech('Vite');
+      if (lower.includes('webpack')) addTech('Webpack');
+      if (lower === 'django') addTech('Django');
+      if (lower === 'flask') addTech('Flask');
+      if (lower === 'fastapi') addTech('FastAPI');
+      if (lower.includes('spring-boot') || lower === '@springboot') addTech('Spring Boot');
+      if (lower === 'rails' || lower.includes('rails')) addTech('Ruby on Rails');
+    });
+
+    // File/extension based detection
+    const pathList = Array.isArray(files) ? files.map(f => f?.path || f).filter(Boolean) : [];
+    let sawPackageJson = false;
+
+    for (const p of pathList) {
+      const lowerPath = p.toLowerCase();
+      const ext = path.extname(lowerPath);
+
+      if (path.basename(lowerPath) === 'package.json') {
+        sawPackageJson = true;
+      }
+      if (path.basename(lowerPath) === 'requirements.txt' || path.basename(lowerPath) === 'pipfile' || path.basename(lowerPath) === 'setup.py') {
+        addTech('Python');
+      }
+      if (path.basename(lowerPath) === 'pom.xml' || path.basename(lowerPath) === 'build.gradle') {
+        addTech('Java');
+      }
+      if (path.basename(lowerPath) === 'go.mod') addTech('Go');
+      if (path.basename(lowerPath) === 'gemfile') addTech('Ruby');
+      if (lowerPath.endsWith('.csproj')) addTech('.NET');
+      if (path.basename(lowerPath) === 'cargo.toml') addTech('Rust');
+      if (path.basename(lowerPath) === 'dockerfile') addTech('Docker');
+
+      switch (ext) {
+        case '.ts':
+        case '.tsx':
+          addTech('TypeScript');
+          addTech('Node.js');
+          break;
+        case '.js':
+        case '.jsx':
+          addTech('Node.js');
+          break;
+        case '.py':
+          addTech('Python');
+          break;
+        case '.java':
+          addTech('Java');
+          break;
+        case '.go':
+          addTech('Go');
+          break;
+        case '.rb':
+          addTech('Ruby');
+          break;
+        case '.rs':
+          addTech('Rust');
+          break;
+        case '.cs':
+          addTech('.NET');
+          break;
+        case '.php':
+          addTech('PHP');
+          break;
+      }
+    }
+
+    // If package.json exists and nothing else added for runtime, assume Node.js
+    if (sawPackageJson) addTech('Node.js');
+
+    return Array.from(tech);
+  }
   analyzeComponentDependencies(componentPath) { return []; }
   findRelatedTests(componentPath) { return []; }
   findRelatedDocumentation(componentPath) { return []; }
@@ -554,5 +760,4 @@ class DeepRepoResearch {
   generateSecurityRecommendations(vulnerabilities, secretExposures) { return []; }
 }
 
-// Export the skill
-module.exports = DeepRepoResearch;
+export default DeepRepoResearch;

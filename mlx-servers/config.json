@@ -35,7 +35,7 @@
   "performance": {
     "target_tokens_per_second": 55,
     "max_queue_size": 1000,
-    "request_timeout": 600000,
+    "request_timeout": 30000,
     "keep_alive": true,
     "tcp_nodelay": true,
     "compression": true
