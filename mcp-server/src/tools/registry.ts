@@ -13,6 +13,10 @@ function validatePath(p: string): string {
   return resolved;
 }
 
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -481,9 +485,13 @@ export class ToolRegistry {
         }),
         handler: async (args) => {
           try {
-            const content = await fs.readFile(args.filePath, 'utf8');
+            const file = validatePath(String(args.filePath));
+            const content = await fs.readFile(file, 'utf8');
             const lines = content.split('\n');
-            const regex = new RegExp(`(function\\s+${args.functionName}|const\\s+${args.functionName}\\s*=|class\\s+.*${args.functionName})`);
+            const escapedName = escapeRegExp(String(args.functionName));
+            const regex = new RegExp(
+              `(function\\s+${escapedName}\\b|const\\s+${escapedName}\\s*=|class\\s+.*${escapedName}\\b)`
+            );
             let lineNum = 0;
             lines.some((line, idx) => {
               if (regex.test(line)) {

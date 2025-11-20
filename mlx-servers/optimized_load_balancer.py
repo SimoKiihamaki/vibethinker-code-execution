@@ -194,6 +194,9 @@ class OptimizedMLXLoadBalancer:
         self.request_latency: deque = deque(maxlen=1000)
         self.start_time = time.time()
 
+        # Background tasks
+        self.background_tasks: List[asyncio.Task] = []
+
         # Initialize instances
         self._initialize_instances()
         # self._start_background_tasks() - Moved to on_startup
@@ -224,16 +227,18 @@ class OptimizedMLXLoadBalancer:
     def _start_background_tasks(self):
         """Start background optimization tasks"""
         # Start connection pool manager
-        asyncio.create_task(self._manage_connection_pool())
+        self.background_tasks.append(
+            asyncio.create_task(self._manage_connection_pool())
+        )
 
         # Start performance monitoring
-        asyncio.create_task(self._monitor_performance())
+        self.background_tasks.append(asyncio.create_task(self._monitor_performance()))
 
         # Start garbage collection optimizer
-        asyncio.create_task(self._optimize_memory())
+        self.background_tasks.append(asyncio.create_task(self._optimize_memory()))
 
         # Start throughput optimizer
-        asyncio.create_task(self._optimize_throughput())
+        self.background_tasks.append(asyncio.create_task(self._optimize_throughput()))
 
     async def _manage_connection_pool(self):
         """Manage HTTP connection pool for optimal performance"""
@@ -787,7 +792,7 @@ def create_optimized_app(config: Dict[str, Any]) -> web.Application:
                 await asyncio.sleep(10)
 
     async def start_bg_checks(app):
-        asyncio.create_task(background_health_checks(app))
+        app["health_check_task"] = asyncio.create_task(background_health_checks(app))
 
     app.on_startup.append(start_bg_checks)
 
@@ -823,7 +828,7 @@ if __name__ == "__main__":
         logger.error(f"Failed to load config from {args.config}: {e}")
         # Fallback config
         config = {
-            "mlx_servers": {"base_port": 8080, "instances": 27},
+            "mlx_servers": {"base_port": 8107, "instances": 27},
             "load_balancer": {
                 "health_check_timeout": 5,
                 "circuit_breaker": {"failure_threshold": 5, "recovery_timeout": 60},

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, estimateTokens } from '../../mcp-server/servers/shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Gather comprehensive context about code, files, and relationships
@@ -32,7 +32,8 @@ export async function gatherContext(input: gatherContextInput): Promise<gatherCo
   const validatedInput = gatherContextSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = buildgatherContextPrompt(validatedInput);
@@ -118,3 +119,9 @@ function parsegatherContextResult(result: string, input: gatherContextInput): an
   }
 }
 
+/**
+ * Estimate token count for text
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
