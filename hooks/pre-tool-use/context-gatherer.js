@@ -7,7 +7,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 /**
  * Main hook function that processes the tool use request

@@ -215,7 +215,10 @@ export class ToolRegistry {
           // Build import graph
           for (const f of files) {
             let c = '';
-            try { c = await fs.readFile(f, 'utf8'); } catch { continue; }
+            try { c = await fs.readFile(f, 'utf8'); } catch (err) {
+              winston.debug(`Failed to read file ${f}: ${err}`);
+              continue;
+            }
             const re = /import\s+[^'";]*from\s+['"]([^'"\n]+)['"]|require\(\s*['"]([^'"\n]+)['"]\s*\)/g;
             const deps: Set<string> = new Set();
             let m: RegExpExecArray | null;
@@ -539,7 +542,9 @@ export class ToolRegistry {
                 if (c.includes('console.log')) violations.push({ type: 'best-practice', message: 'console.log usage', file: p });
               }
             }
-          } catch (e) { }
+          } catch (e) {
+            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+          }
 
           return {
             patterns: [],
@@ -571,7 +576,9 @@ export class ToolRegistry {
               if (c.includes('TODO')) issues.push({ type: 'code-smell', message: 'Unresolved TODO', file: target });
               if (c.includes('var ')) issues.push({ type: 'code-smell', message: 'Use let/const', file: target });
             }
-          } catch (e) { }
+          } catch (e) {
+            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+          }
 
           return {
             issues,
@@ -751,7 +758,9 @@ export class ToolRegistry {
                   if (e.name.includes('Repository')) patterns.push({ name: 'Repository', file: p, confidence: 'high' });
                 }
               }
-            } catch (e) { }
+            } catch (e) {
+            winston.debug(`Failed to analyze patterns in directory: ${e}`);
+          }
           }
 
           await walk(codebase);

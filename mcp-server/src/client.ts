@@ -133,7 +133,7 @@ export class MLXClient {
   ): Promise<string> {
     return this.queue.add(async () => {
       if (!this.loadBalancer || !this.loadBalancer.healthy) {
-        const msg = 'Load Balancer not available. Please ensure MLX servers are running on port 8090.';
+        const msg = `Load Balancer not available. Please ensure MLX servers are running on port ${this.loadBalancer?.config.port ?? 'unknown'}.`;
         logger.error(msg);
         throw new Error(msg);
       }
@@ -186,7 +186,7 @@ export class MLXClient {
   ): Promise<string> {
     return this.queue.add(async () => {
       if (!this.loadBalancer || !this.loadBalancer.healthy) {
-        const msg = 'Load Balancer not available. Please ensure MLX servers are running on port 8090.';
+        const msg = `Load Balancer not available. Please ensure MLX servers are running on port ${this.loadBalancer?.config.port ?? 'unknown'}.`;
         logger.error(msg);
         throw new Error(msg);
       }

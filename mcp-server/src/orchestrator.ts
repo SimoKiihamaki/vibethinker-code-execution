@@ -217,7 +217,9 @@ Output requirements:
             data: parsed,
           };
         }
-      } catch { }
+      } catch (err) {
+        logger.debug(`Failed to parse JSON from tool result: ${err}. Extracted JSON: ${extractedJson}`);
+      }
     }
 
     const textResult = this.sanitizeOutput(mlxResult, 'text');

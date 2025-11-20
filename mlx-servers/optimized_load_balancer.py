@@ -9,7 +9,7 @@ import json
 import logging
 import time
 import threading
-from typing import Dict, List, Optional, Any, Set
+from typing import Dict, List, Optional, Any, Set, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import aiohttp
@@ -443,7 +443,7 @@ class OptimizedMLXLoadBalancer:
         url: str,
         estimated_tokens: float,
         timeout: float,
-    ) -> tuple[Dict[str, Any], int, float, float]:
+    ) -> Tuple[Dict[str, Any], int, float, float]:
         """Shared HTTP forwarding helper that captures response status inside context."""
         start_time = time.time()
         instance.active_requests += 1

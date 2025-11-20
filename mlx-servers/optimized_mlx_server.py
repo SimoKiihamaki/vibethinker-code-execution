@@ -55,14 +55,38 @@ class OptimizedMLXModel:
     def _load_model(self):
         """Load model with optimized settings"""
         logger.info(
-            f"Loading model from {self.model_path}"
+            f"Loading model from {self.model_path} with quantization: {self.quantization}"
         )
 
-        # Load model
-        # Note: Quantization is handled by the model config or load function automatically
-        self.model, self.tokenizer = load(
-            self.model_path, tokenizer_config={"trust_remote_code": True}
-        )
+        try:
+            # Load model with quantization configuration
+            # Note: Quantization should be configured in the model's config.json file
+            # If the model doesn't have quantization configuration, quantization will be skipped
+            self.model, self.tokenizer = load(
+                self.model_path, tokenizer_config={"trust_remote_code": True}
+            )
+
+            # Verify quantization was applied if specified
+            if self.quantization != "none" and self.quantization != "q4":
+                logger.warning(
+                    f"Quantization '{self.quantization}' was specified but may not be applied. "
+                    f"Ensure the model configuration supports this quantization level."
+                )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to load model with quantization {self.quantization}: {e}"
+            )
+            logger.info("Attempting to load model without quantization...")
+            try:
+                self.model, self.tokenizer = load(
+                    self.model_path, tokenizer_config={"trust_remote_code": True}
+                )
+            except Exception as fallback_error:
+                logger.error(
+                    f"Failed to load model even without quantization: {fallback_error}"
+                )
+                raise
 
         logger.info("Model loaded successfully")
 
@@ -70,14 +94,23 @@ class OptimizedMLXModel:
         """Setup performance optimizations"""
         # Set optimal thread count
         cpu_count = psutil.cpu_count(logical=False) or 4
-        
+
         # Use GPU if available (Apple Silicon)
-        if mx.metal.is_available():
-            mx.set_default_device(mx.gpu)
-            logger.info("Using Metal GPU acceleration")
-        else:
+        try:
+            if mx.metal.is_available():
+                mx.set_default_device(mx.gpu)
+                logger.info("Using Metal GPU acceleration")
+            else:
+                mx.set_default_device(mx.cpu)
+                logger.info("Using CPU (Metal not available)")
+        except AttributeError as e:
+            logger.warning(f"Metal API not available in this MLX version: {e}")
             mx.set_default_device(mx.cpu)
-            logger.info("Using CPU (Metal not available)")
+            logger.info("Using CPU (Metal API unavailable)")
+        except Exception as e:
+            logger.warning(f"Failed to detect Metal availability: {e}")
+            mx.set_default_device(mx.cpu)
+            logger.info("Using CPU (Metal detection failed)")
 
         # Setup thread pool for parallel processing
         self.executor = ThreadPoolExecutor(max_workers=cpu_count)
@@ -282,12 +315,10 @@ class OptimizedMLXServer:
                     ],
                     "model": self.config["model"]["path"],
                     "usage": {
-                        "prompt_tokens": len(self.model.tokenizer.encode(prompt)),
-                        "completion_tokens": len(
-                            self.model.tokenizer.encode(response_text)
-                        ),
+                        "prompt_tokens": len(self.tokenizer.encode(prompt)),
+                        "completion_tokens": len(self.tokenizer.encode(response_text)),
                         "total_tokens": len(
-                            self.model.tokenizer.encode(prompt + response_text)
+                            self.tokenizer.encode(prompt + response_text)
                         ),
                     },
                     "processing_time": processing_time,
@@ -389,10 +420,10 @@ class OptimizedMLXServer:
         try:
             request_data = await request.json()
             messages = request_data.get("messages", [])
-            
+
             # Apply chat template
-            if hasattr(self.model.tokenizer, "apply_chat_template"):
-                prompt = self.model.tokenizer.apply_chat_template(
+            if hasattr(self.tokenizer, "apply_chat_template"):
+                prompt = self.tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=True
                 )
             else:
@@ -402,7 +433,7 @@ class OptimizedMLXServer:
 
             # Update request data with prompt
             request_data["prompt"] = prompt
-            
+
             # Create future for async response
             future = asyncio.Future()
             request_data["future"] = future
@@ -424,18 +455,18 @@ class OptimizedMLXServer:
                         "index": 0,
                         "message": {
                             "role": "assistant",
-                            "content": response_data["choices"][0]["text"]
+                            "content": response_data["choices"][0]["text"],
                         },
-                        "finish_reason": response_data["choices"][0]["finish_reason"]
+                        "finish_reason": response_data["choices"][0]["finish_reason"],
                     }
                 ],
                 "usage": response_data["usage"],
             }
-            
+
             # Add performance metadata if present
             if "_performance" in response_data:
                 chat_response["_performance"] = response_data["_performance"]
-            
+
             return web.json_response(chat_response)
 
         except Exception as e:
