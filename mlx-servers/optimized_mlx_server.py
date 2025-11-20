@@ -315,11 +315,15 @@ class OptimizedMLXServer:
                     ],
                     "model": self.config["model"]["path"],
                     "usage": {
-                        "prompt_tokens": len(self.tokenizer.encode(prompt)),
-                        "completion_tokens": len(self.tokenizer.encode(response_text)),
-                        "total_tokens": len(
-                            self.tokenizer.encode(prompt + response_text)
+                        "prompt_tokens": (
+                            prompt_tokens := len(self.tokenizer.encode(prompt))
                         ),
+                        "completion_tokens": (
+                            completion_tokens := len(
+                                self.tokenizer.encode(response_text)
+                            )
+                        ),
+                        "total_tokens": prompt_tokens + completion_tokens,
                     },
                     "processing_time": processing_time,
                     "timestamp": time.time(),

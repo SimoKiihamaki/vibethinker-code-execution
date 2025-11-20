@@ -55,7 +55,7 @@ export class ProgressiveDisclosureGenerator {
     }
 
     // Generate main index file
-    const mainIndexContent = this.generateMainIndex(categories);
+    const mainIndexContent = this.buildMainIndexContent(categories);
     await fs.writeFile(path.join(this.apiPath, 'index.ts'), mainIndexContent);
 
     logger.info(chalk.green('✅ Progressive disclosure API generated'));
@@ -293,7 +293,7 @@ function estimateTokens(text: string): number {
 `;
   }
 
-  private generateMainIndex(categories: string[]): string {
+  private buildMainIndexContent(categories: string[]): string {
     const imports = categories.map(category =>
       `import * as ${category.replace('-', '')} from './${category}/index.js';`
     ).join('\n');

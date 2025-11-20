@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
 
 /**
  * Gather comprehensive context about code, files, and relationships
@@ -32,8 +32,7 @@ export async function gatherContext(input: gatherContextInput): Promise<gatherCo
   const validatedInput = gatherContextSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildgatherContextPrompt(validatedInput);

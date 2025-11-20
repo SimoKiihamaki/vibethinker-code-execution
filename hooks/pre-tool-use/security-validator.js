@@ -15,8 +15,8 @@ import { fileURLToPath } from 'url';
  */
 function getSecurityScore(level) {
   if (typeof level === 'number') {
-    if (!Number.isInteger(level) || level < 1 || level > 4) {
-      throw new Error(`Numeric security level out of range: ${level} (must be 1-4)`);
+    if (!Number.isInteger(level) || level < 0 || level > 4) {
+      throw new Error(`Numeric security level out of range: ${level} (must be 0-4)`);
     }
     return level;
   }

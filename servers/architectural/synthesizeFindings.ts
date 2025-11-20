@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
 
 /**
  * Synthesize multiple analysis findings into coherent architectural insights
@@ -32,8 +32,7 @@ export async function synthesizeFindings(input: synthesizeFindingsInput): Promis
   const validatedInput = synthesizeFindingsSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildsynthesizeFindingsPrompt(validatedInput);

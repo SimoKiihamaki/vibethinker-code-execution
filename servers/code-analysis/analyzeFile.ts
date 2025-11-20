@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
 
 /**
  * Deep analysis of a single file including complexity, patterns, and issues
@@ -32,11 +32,16 @@ export async function analyzeFile(input: analyzeFileInput): Promise<analyzeFileR
   const validatedInput = analyzeFileSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildanalyzeFilePrompt(validatedInput);
+  const prompt = buildToolPrompt(
+    'analyzeFile',
+    'Deep analysis of a single file including complexity, patterns, and issues',
+    'code-analysis',
+    'moderate',
+    validatedInput
+  );
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -51,7 +56,7 @@ export async function analyzeFile(input: analyzeFileInput): Promise<analyzeFileR
     
     return {
       success: true,
-      data: parseanalyzeFileResult(result, validatedInput),
+      data: parseToolResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
