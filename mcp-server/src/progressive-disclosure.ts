@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
 import winston from 'winston';
 import chalk from 'chalk';
 import fs from 'fs/promises';
