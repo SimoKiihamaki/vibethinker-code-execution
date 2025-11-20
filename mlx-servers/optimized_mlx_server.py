@@ -316,11 +316,11 @@ class OptimizedMLXServer:
                     "model": self.config["model"]["path"],
                     "usage": {
                         "prompt_tokens": (
-                            prompt_tokens := len(self.tokenizer.encode(prompt))
+                            prompt_tokens := len(self.model.tokenizer.encode(prompt))
                         ),
                         "completion_tokens": (
                             completion_tokens := len(
-                                self.tokenizer.encode(response_text)
+                                self.model.tokenizer.encode(response_text)
                             )
                         ),
                         "total_tokens": prompt_tokens + completion_tokens,
