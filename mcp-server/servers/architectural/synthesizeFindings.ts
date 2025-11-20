@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../shared/utils.js';
 
 /**
  * Synthesize multiple analysis findings into coherent architectural insights
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: synthesis, architecture, insights
  */
 
-const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({  })), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
+const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({}).passthrough()), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
 
 export interface synthesizeFindingsInput extends z.infer<typeof synthesizeFindingsSchema> {}
 

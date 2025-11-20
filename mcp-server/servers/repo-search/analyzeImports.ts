@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../src/client.js';
+import { getMLXClient, estimateTokens } from '../shared/utils.js';
 
 /**
  * Analyze import patterns and circular dependencies
@@ -28,12 +28,13 @@ export interface analyzeImportsResult {
  * Execute analyzeImports tool with progressive disclosure
  */
 export async function analyzeImports(input: analyzeImportsInput): Promise<analyzeImportsResult> {
-  // Validate input
-  const validatedInput = analyzeImportsSchema.parse(input);
-  
-  // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const startTime = Date.now();
+  try {
+    // Validate input
+    const validatedInput = analyzeImportsSchema.parse(input);
+
+    // Get MLX client instance
+    const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeImportsPrompt(validatedInput);

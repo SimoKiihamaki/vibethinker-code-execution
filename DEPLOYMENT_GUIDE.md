@@ -146,7 +146,7 @@ claude-code "skill: context-aware-editing --file=src/api/users.js"
 - **MLX Servers**: 27 instances of Qwen3-VL-2B-Thinking (ports 8107-8133)
 - **MCP Server**: Model Context Protocol server (stdio)
 - **Load Balancer**: Intelligent request distribution (port 8090)
-- **Health Monitor**: System health checking (port 8092)
+- **Health Monitor**: System health checking (port 8080)
 
 ### Configuration
 ```json

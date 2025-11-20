@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Create comprehensive architectural map of the codebase
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: architecture, mapping, layers
  */
 
-const mapArchitectureSchema = z.object({});
+const mapArchitectureSchema = z.object({ rootPath: z.string().describe('Root path of the repository'), layers: z.array(z.string()).optional(), includeDependencies: z.boolean().default(true) });
 
 export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> {}
 

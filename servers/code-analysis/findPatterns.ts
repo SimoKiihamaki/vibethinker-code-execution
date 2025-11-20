@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: patterns, anti-patterns, best-practices
  */
 
-const findPatternsSchema = z.object({});
+const findPatternsSchema = z.object({ directory: z.string().describe('Directory to search'), patternTypes: z.array(z.enum(['anti-patterns', 'best-practices', 'security', 'performance'])).default(["anti-patterns"]), severity: z.enum(['low', 'medium', 'high']).default("medium") });
 
 export interface findPatternsInput extends z.infer<typeof findPatternsSchema> {}
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Generate comprehensive documentation from code analysis
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: documentation, generation, comprehensive
  */
 
-const buildDocumentationSchema = z.object({});
+const buildDocumentationSchema = z.object({ target: z.string().describe('Target file or directory'), docType: z.enum(['api', 'architecture', 'usage', 'comprehensive']).default("comprehensive"), includeExamples: z.boolean().default(true) });
 
 export interface buildDocumentationInput extends z.infer<typeof buildDocumentationSchema> {}
 

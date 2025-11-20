@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: summary, module, documentation
  */
 
-const summarizeModuleSchema = z.object({});
+const summarizeModuleSchema = z.object({ modulePath: z.string().describe('Path to the module to summarize'), summaryType: z.enum(['brief', 'detailed', 'technical']).default("detailed"), includeDependencies: z.boolean().default(true) });
 
 export interface summarizeModuleInput extends z.infer<typeof summarizeModuleSchema> {}
 

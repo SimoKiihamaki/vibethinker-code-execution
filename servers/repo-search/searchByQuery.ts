@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Search repository by natural language query using ripgrep and semantic understanding
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: search, ripgrep, semantic
  */
 
-const searchByQuerySchema = z.object({});
+const searchByQuerySchema = z.object({ query: z.string().describe('Natural language search query'), fileTypes: z.array(z.string()).optional(), maxResults: z.number().int().default(20), contextLines: z.number().int().default(3) });
 
 export interface searchByQueryInput extends z.infer<typeof searchByQuerySchema> {}
 

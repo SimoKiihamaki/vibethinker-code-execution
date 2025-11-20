@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Analyze import patterns and circular dependencies
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: imports, cycles, patterns
  */
 
-const analyzeImportsSchema = z.object({});
+const analyzeImportsSchema = z.object({ directory: z.string().describe('Directory to analyze'), detectCycles: z.boolean().default(true), analyzePatterns: z.boolean().default(true) });
 
 export interface analyzeImportsInput extends z.infer<typeof analyzeImportsSchema> {}
 

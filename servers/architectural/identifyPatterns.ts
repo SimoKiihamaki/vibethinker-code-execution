@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient, estimateTokens } from '../mcp-server/servers/shared/utils.js';
 
 /**
  * Identify architectural patterns and design principles
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: patterns, architecture, design
  */
 
-const identifyPatternsSchema = z.object({});
+const identifyPatternsSchema = z.object({ codebase: z.string().describe('Path to codebase to analyze'), patternTypes: z.array(z.enum(['design-patterns', 'architectural-patterns', 'microservices', 'ddd'])).default(["design-patterns"]), includeViolations: z.boolean().default(true) });
 
 export interface identifyPatternsInput extends z.infer<typeof identifyPatternsSchema> {}
 

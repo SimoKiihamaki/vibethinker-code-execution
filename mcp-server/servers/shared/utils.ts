@@ -1,4 +1,15 @@
 import { z } from 'zod';
+import { getMLXClient, estimateTokens } from '../shared/utils.js';
+
+let cachedClient: MLXClient | null = null;
+
+export async function getMLXClient(): Promise<MLXClient> {
+  if (cachedClient) return cachedClient;
+  const client = new MLXClient();
+  await client.initialize();
+  cachedClient = client;
+  return client;
+}
 
 export function buildToolPrompt(
     toolName: string,
