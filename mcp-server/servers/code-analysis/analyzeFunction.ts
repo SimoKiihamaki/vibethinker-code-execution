@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { estimateTokens } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -31,9 +31,8 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   // Validate input
   const validatedInput = analyzeFunctionSchema.parse(input);
   
-  // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  // Get shared MLX client instance
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);
@@ -119,9 +118,3 @@ function parseanalyzeFunctionResult(result: string, input: analyzeFunctionInput)
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

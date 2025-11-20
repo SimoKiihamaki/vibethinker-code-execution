@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { estimateTokens } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Synthesize multiple analysis findings into coherent architectural insights
@@ -31,9 +31,8 @@ export async function synthesizeFindings(input: synthesizeFindingsInput): Promis
   // Validate input
   const validatedInput = synthesizeFindingsSchema.parse(input);
   
-  // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  // Get shared MLX client instance
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildsynthesizeFindingsPrompt(validatedInput);
@@ -119,9 +118,3 @@ function parsesynthesizeFindingsResult(result: string, input: synthesizeFindings
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}

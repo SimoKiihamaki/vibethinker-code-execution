@@ -119,9 +119,3 @@ function parseanalyzeImportsResult(result: string, input: analyzeImportsInput): 
   }
 }
 
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
