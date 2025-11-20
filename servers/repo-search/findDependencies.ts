@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Find all dependencies and imports for a given file or module
@@ -32,16 +32,11 @@ export async function findDependencies(input: findDependenciesInput): Promise<fi
   const validatedInput = findDependenciesSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
-  const prompt = buildToolPrompt(
-    'findDependencies',
-    'Find all dependencies and imports for a given file or module',
-    'repo-search',
-    'complex',
-    validatedInput
-  );
+  const prompt = buildfindDependenciesPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -56,7 +51,7 @@ export async function findDependencies(input: findDependenciesInput): Promise<fi
     
     return {
       success: true,
-      data: parseToolResult(result, validatedInput),
+      data: parsefindDependenciesResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -76,3 +71,57 @@ export async function findDependencies(input: findDependenciesInput): Promise<fi
   }
 }
 
+/**
+ * Build context-aware prompt for findDependencies
+ */
+function buildfindDependenciesPrompt(input: findDependenciesInput): string {
+  return `You are VibeThinker, an expert code analysis AI.
+
+Identity: VibeThinker
+Mode: concise, plain text
+
+Constraints:
+- Respond in English
+- Do not use markdown or code fences
+- Do not include meta-instructions or internal reasoning
+- Keep natural-language responses under 180 words
+
+Tool: findDependencies
+Description: Find all dependencies and imports for a given file or module
+Category: repo-search
+Complexity: complex
+
+Input:
+${JSON.stringify(input, null, 2)}
+
+Output requirements:
+- Provide precise, actionable insights
+- Include specific recommendations and clear next steps
+- Identify relevant patterns and dependencies
+- Minimize tokens while maximizing clarity`;
+}
+
+/**
+ * Parse and structure findDependencies results
+ */
+function parsefindDependenciesResult(result: string, input: findDependenciesInput): any {
+  try {
+    // Try to parse as JSON
+    const parsed = JSON.parse(result);
+    return parsed;
+  } catch {
+    // If not JSON, return structured text result
+    return {
+      result: result,
+      input: input,
+      timestamp: Date.now(),
+    };
+  }
+}
+
+/**
+ * Estimate token count for text
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}

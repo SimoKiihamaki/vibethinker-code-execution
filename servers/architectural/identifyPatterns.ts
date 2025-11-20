@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Identify architectural patterns and design principles
@@ -32,7 +32,8 @@ export async function identifyPatterns(input: identifyPatternsInput): Promise<id
   const validatedInput = identifyPatternsSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = buildidentifyPatternsPrompt(validatedInput);

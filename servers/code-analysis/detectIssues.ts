@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Detect potential issues, bugs, and code smells
@@ -32,7 +32,8 @@ export async function detectIssues(input: detectIssuesInput): Promise<detectIssu
   const validatedInput = detectIssuesSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = builddetectIssuesPrompt(validatedInput);

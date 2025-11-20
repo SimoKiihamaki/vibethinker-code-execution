@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -32,7 +32,8 @@ export async function summarizeModule(input: summarizeModuleInput): Promise<summ
   const validatedInput = summarizeModuleSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = buildsummarizeModulePrompt(validatedInput);

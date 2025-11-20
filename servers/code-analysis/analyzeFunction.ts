@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -32,7 +32,8 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   const validatedInput = analyzeFunctionSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);

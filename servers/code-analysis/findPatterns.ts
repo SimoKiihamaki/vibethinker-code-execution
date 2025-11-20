@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient, buildToolPrompt, parseToolResult, estimateTokens } from '../shared/utils.js';
+import { MLXClient } from '../../mcp-server/src/client.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -32,7 +32,8 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
   const validatedInput = findPatternsSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = await getMLXClient();
+  const mlxClient = new MLXClient();
+  await mlxClient.initialize();
   
   // Build context-aware prompt
   const prompt = buildfindPatternsPrompt(validatedInput);
