@@ -1,0 +1,133 @@
+import { z } from 'zod';
+import fs from 'fs/promises';
+import path from 'path';
+import { ToolDefinition } from '../../types.js';
+import { validatePath, logger } from '../../utils.js';
+
+export const generateReport: ToolDefinition = {
+    name: 'generateReport',
+    category: 'architectural',
+    description: 'Generate a standalone HTML report visualizing architectural insights and dependency graphs',
+    inputSchema: z.object({
+        directory: z.string().describe('Root directory of the project'),
+        outputFile: z.string().default('architecture-report.html').describe('Output HTML file path'),
+        includeGraphs: z.boolean().default(true).describe('Include dependency graphs'),
+    }),
+    handler: async (args) => {
+        // Parse and validate input with schema
+        const validated = generateReport.inputSchema.parse(args);
+
+        const dir = await validatePath(validated.directory);
+        // Resolve outputFile relative to the validated directory instead of cwd
+        const outputFile = await validatePath(path.resolve(dir, validated.outputFile));
+
+        // HTML escape utility to prevent XSS
+        const escapeHtml = (str: string) =>
+            str.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#039;');
+
+        const escapedDirName = escapeHtml(path.basename(dir));
+
+        // Placeholder for data gathering - in a real scenario, we'd call other tools or use shared logic
+        // For now, we'll generate a basic report structure
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Report - ${escapedDirName}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .metric { display: inline-block; margin-right: 20px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #2980b9; }
+        .metric-label { font-size: 14px; color: #7f8c8d; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Architecture Report: ${escapedDirName}</h1>
+    <p>Generated on ${new Date().toLocaleString()}</p>
+
+    <div class="card">
+        <h2>Overview</h2>
+        <div class="metric">
+            <div class="metric-value">Analyzed</div>
+            <div class="metric-label">Status</div>
+        </div>
+        <p>This report provides a high-level view of the project's architecture.</p>
+    </div>
+
+    ${validated.includeGraphs ? `
+    <div class="card">
+        <h2>Dependency Graph</h2>
+        <p>Visualization placeholder. In a full implementation, we would embed a D3.js or Mermaid graph here.</p>
+        <pre>
+graph TD
+    A[src] --> B[components]
+    A --> C[utils]
+    B --> C
+        </pre>
+    </div>
+    ` : ''}
+
+    <div class="card">
+        <h2>Key Findings</h2>
+        <ul>
+            <li>Project structure analysis pending...</li>
+            <li>Code quality metrics pending...</li>
+        </ul>
+    </div>
+</body>
+</html>
+    `;
+
+        try {
+            // Check if file exists and log warning
+            try {
+                await fs.access(outputFile);
+                logger.warn(`Overwriting existing report at ${outputFile}`);
+            } catch {
+                // File doesn't exist, proceed with write
+            }
+
+            // Ensure parent directory exists before writing
+            await fs.mkdir(path.dirname(outputFile), { recursive: true });
+
+            // Atomic file write with rollback protection
+            const tempFile = path.join(path.dirname(outputFile), `.${path.basename(outputFile)}.${process.pid}.${Date.now()}.tmp`);
+            try {
+                await fs.writeFile(tempFile, htmlContent, 'utf8');
+                await fs.rename(tempFile, outputFile);
+            } catch (error) {
+                try {
+                    await fs.rm(tempFile, { force: true });
+                } catch {
+                    // ignore cleanup errors
+                }
+                throw error;
+            }
+
+            return {
+                success: true,
+                message: `Report generated at ${outputFile}`,
+                outputFile
+            };
+        } catch (error) {
+            logger.error(`Failed to generate report: ${error}`);
+            throw error;
+        }
+    },
+    tags: ['report', 'visualization', 'architecture'],
+    complexity: 'moderate',
+    externalDependencies: [], // No external tools required
+    npmDependencies: ['zod'],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
+};

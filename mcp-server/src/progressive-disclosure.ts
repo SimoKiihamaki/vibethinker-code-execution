@@ -3,6 +3,7 @@ import winston from 'winston';
 import chalk from 'chalk';
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
 import { ToolRegistry } from './tools/registry.js';
 
 const logger = winston.createLogger({
@@ -56,7 +57,7 @@ export class ProgressiveDisclosureGenerator {
 
     // Generate main index file
     const mainIndexContent = this.buildMainIndexContent(categories);
-    await fs.writeFile(path.join(this.apiPath, 'index.ts'), mainIndexContent);
+    await this.writeFileIfChanged(path.join(this.apiPath, 'index.ts'), mainIndexContent);
 
     logger.info(chalk.green('✅ Progressive disclosure API generated'));
   }
@@ -117,6 +118,54 @@ export class ProgressiveDisclosureGenerator {
     return generatedTool;
   }
 
+  private async writeFileIfChanged(filePath: string, content: string): Promise<boolean> {
+    const SMALL_FILE_THRESHOLD = 128 * 1024;
+    let existingContent: string | null = null;
+    try {
+      existingContent = await fs.readFile(filePath, 'utf8');
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code && err.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+
+    if (existingContent !== null) {
+      const bothSmall = existingContent.length <= SMALL_FILE_THRESHOLD && content.length <= SMALL_FILE_THRESHOLD;
+      if (bothSmall && existingContent === content) {
+        logger.debug(`File ${path.basename(filePath)} unchanged (direct compare), skipping write`);
+        return false;
+      }
+      if (!bothSmall) {
+        const existingHash = crypto.createHash('sha256').update(existingContent).digest('hex');
+        const newHash = crypto.createHash('sha256').update(content).digest('hex');
+        if (existingHash === newHash) {
+          logger.debug(`File ${path.basename(filePath)} unchanged (hash compare), skipping write`);
+          return false;
+        }
+      }
+    }
+
+    const dir = path.dirname(filePath);
+    const randomPart = crypto.randomBytes(6).toString('hex');
+    const tempFile = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomPart}.tmp`);
+    await fs.mkdir(dir, { recursive: true });
+
+    try {
+      await fs.writeFile(tempFile, content, 'utf8');
+      await fs.rename(tempFile, filePath);
+    } catch (error) {
+      try {
+        await fs.rm(tempFile, { force: true });
+      } catch {
+        // ignore cleanup errors
+      }
+      throw error;
+    }
+
+    return true;
+  }
+
   private async generateCategoryAPI(category: string): Promise<void> {
     const categoryPath = path.join(this.apiPath, category);
     await fs.mkdir(categoryPath, { recursive: true });
@@ -125,12 +174,12 @@ export class ProgressiveDisclosureGenerator {
 
     // Generate index.ts for category
     const indexContent = this.generateCategoryIndex(category, tools);
-    await fs.writeFile(path.join(categoryPath, 'index.ts'), indexContent);
+    await this.writeFileIfChanged(path.join(categoryPath, 'index.ts'), indexContent);
 
     // Generate individual tool files
     for (const tool of tools) {
       const toolContent = this.generateToolFile(tool);
-      await fs.writeFile(path.join(categoryPath, `${tool.name}.ts`), toolContent);
+      await this.writeFileIfChanged(path.join(categoryPath, `${tool.name}.ts`), toolContent);
     }
 
     logger.debug(`Generated ${tools.length} tools for category: ${chalk.cyan(category)}`);
@@ -164,7 +213,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * ${tool.description}
@@ -281,13 +330,6 @@ function parse${tool.name}Result(result: string, input: ${tool.name}Input): any 
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }
 `;
   }

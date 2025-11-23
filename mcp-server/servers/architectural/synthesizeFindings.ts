@@ -9,7 +9,61 @@ import { estimateTokens, getMLXClient } from '../shared/utils.js';
  * Tags: synthesis, architecture, insights
  */
 
-const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({}).passthrough()), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
+// Define base finding schema with required fields
+const baseFindingSchema = z.object({
+  type: z.string().describe('Type of finding'),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).describe('Severity level'),
+  message: z.string().describe('Description of the finding'),
+});
+
+// Define specific finding types with discriminated unions
+const codeSmellFindingSchema = baseFindingSchema.extend({
+  type: z.literal('code-smells'),
+  detail: z.string().optional().describe('Additional details about the code smell'),
+});
+
+const bugFindingSchema = baseFindingSchema.extend({
+  type: z.literal('bugs'),
+  file: z.string().optional().describe('File where the bug was found'),
+  line: z.number().optional().describe('Line number of the bug'),
+});
+
+const securityFindingSchema = baseFindingSchema.extend({
+  type: z.literal('security'),
+  file: z.string().optional().describe('File where the security issue was found'),
+  line: z.number().optional().describe('Line number of the security issue'),
+});
+
+const performanceFindingSchema = baseFindingSchema.extend({
+  type: z.literal('performance'),
+  file: z.string().optional().describe('File where the performance issue was found'),
+  line: z.number().optional().describe('Line number of the performance issue'),
+});
+
+const antiPatternFindingSchema = baseFindingSchema.extend({
+  type: z.literal('anti-pattern'),
+  file: z.string().optional().describe('File where the anti-pattern was found'),
+  line: z.number().optional().describe('Line number of the anti-pattern'),
+});
+
+// Discriminated union of known finding types
+const discriminatedFindingSchema = z.discriminatedUnion('type', [
+  codeSmellFindingSchema,
+  bugFindingSchema,
+  securityFindingSchema,
+  performanceFindingSchema,
+  antiPatternFindingSchema,
+]);
+
+// Allow legacy/extended finding types for backward compatibility
+const findingSchema = z.union([discriminatedFindingSchema, baseFindingSchema]);
+
+const synthesizeFindingsSchema = z.object({
+  findings: z.array(findingSchema),
+  topic: z.string().describe('Topic or area of focus'),
+  depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"),
+  includeRecommendations: z.boolean().default(true)
+});
 
 export interface synthesizeFindingsInput extends z.infer<typeof synthesizeFindingsSchema> {}
 

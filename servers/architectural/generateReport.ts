@@ -2,18 +2,18 @@ import { z } from 'zod';
 import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
- * Search repository by natural language query using ripgrep and semantic understanding
+ * Generate a standalone HTML report visualizing architectural insights and dependency graphs
  * 
- * Category: repo-search
+ * Category: architectural
  * Complexity: moderate
- * Tags: search, ripgrep, semantic
+ * Tags: report, visualization, architecture
  */
 
-const searchByQuerySchema = z.object({ query: z.string().describe('Natural language search query'), fileTypes: z.array(z.string()).optional(), maxResults: z.number().int().default(20), contextLines: z.number().int().default(3) });
+const generateReportSchema = z.object({ directory: z.string().describe('Root directory of the project'), outputFile: z.string().default("architecture-report.html"), includeGraphs: z.boolean().default(true) });
 
-export interface searchByQueryInput extends z.infer<typeof searchByQuerySchema> {}
+export interface generateReportInput extends z.infer<typeof generateReportSchema> {}
 
-export interface searchByQueryResult {
+export interface generateReportResult {
   success: boolean;
   data?: any;
   error?: string;
@@ -25,17 +25,17 @@ export interface searchByQueryResult {
 }
 
 /**
- * Execute searchByQuery tool with progressive disclosure
+ * Execute generateReport tool with progressive disclosure
  */
-export async function searchByQuery(input: searchByQueryInput): Promise<searchByQueryResult> {
+export async function generateReport(input: generateReportInput): Promise<generateReportResult> {
   // Validate input
-  const validatedInput = searchByQuerySchema.parse(input);
+  const validatedInput = generateReportSchema.parse(input);
   
   // Get MLX client instance
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildsearchByQueryPrompt(validatedInput);
+  const prompt = buildgenerateReportPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
     
     return {
       success: true,
-      data: parsesearchByQueryResult(result, validatedInput),
+      data: parsegenerateReportResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -71,9 +71,9 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
 }
 
 /**
- * Build context-aware prompt for searchByQuery
+ * Build context-aware prompt for generateReport
  */
-function buildsearchByQueryPrompt(input: searchByQueryInput): string {
+function buildgenerateReportPrompt(input: generateReportInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -85,9 +85,9 @@ Constraints:
 - Do not include meta-instructions or internal reasoning
 - Keep natural-language responses under 180 words
 
-Tool: searchByQuery
-Description: Search repository by natural language query using ripgrep and semantic understanding
-Category: repo-search
+Tool: generateReport
+Description: Generate a standalone HTML report visualizing architectural insights and dependency graphs
+Category: architectural
 Complexity: moderate
 
 Input:
@@ -101,9 +101,9 @@ Output requirements:
 }
 
 /**
- * Parse and structure searchByQuery results
+ * Parse and structure generateReport results
  */
-function parsesearchByQueryResult(result: string, input: searchByQueryInput): any {
+function parsegenerateReportResult(result: string, input: generateReportInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);

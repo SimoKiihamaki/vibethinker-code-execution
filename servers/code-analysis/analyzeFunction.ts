@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: function, analysis, complexity
  */
 
-const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze'), includeCallers: z.boolean().default(false), includeCallees: z.boolean().default(false) });
+const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze') });
 
 export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
 
@@ -32,8 +32,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   const validatedInput = analyzeFunctionSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);

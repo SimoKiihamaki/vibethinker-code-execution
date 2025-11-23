@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Analyze import patterns and circular dependencies
@@ -32,8 +32,7 @@ export async function analyzeImports(input: analyzeImportsInput): Promise<analyz
   const validatedInput = analyzeImportsSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildanalyzeImportsPrompt(validatedInput);

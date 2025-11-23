@@ -48,7 +48,7 @@ export const api = {
       complexity: 'complex',
     }
   ],
-  totalTools: 14,
+  totalTools: 15,
   features: [
     'progressive-disclosure',
     'context-aware-execution',
@@ -62,18 +62,6 @@ export const api = {
 export function discoverTools(query?: string) {
   const allTools = [
     {
-      name: 'searchByQuery',
-      description: 'Search repository by natural language query using ripgrep and semantic understanding',
-      category: 'repo-search',
-      tags: ['search', 'ripgrep', 'semantic']
-    },
-    {
-      name: 'findDependencies',
-      description: 'Find all dependencies and imports for a given file or module',
-      category: 'repo-search',
-      tags: ['dependencies', 'imports', 'graph']
-    },
-    {
       name: 'analyzeImports',
       description: 'Analyze import patterns and circular dependencies',
       category: 'repo-search',
@@ -84,6 +72,18 @@ export function discoverTools(query?: string) {
       description: 'Build comprehensive dependency graph of the repository',
       category: 'repo-search',
       tags: ['graph', 'dependencies', 'visualization']
+    },
+    {
+      name: 'findDependencies',
+      description: 'Find all dependencies and imports for a given file or module',
+      category: 'repo-search',
+      tags: ['dependencies', 'imports', 'graph']
+    },
+    {
+      name: 'searchByQuery',
+      description: 'Search repository by natural language query using ripgrep and semantic understanding',
+      category: 'repo-search',
+      tags: ['search', 'ripgrep', 'semantic']
     },
     {
       name: 'analyzeFile',
@@ -98,22 +98,28 @@ export function discoverTools(query?: string) {
       tags: ['function', 'analysis', 'complexity']
     },
     {
-      name: 'findPatterns',
-      description: 'Find code patterns, anti-patterns, and best practice violations',
-      category: 'code-analysis',
-      tags: ['patterns', 'anti-patterns', 'best-practices']
-    },
-    {
       name: 'detectIssues',
       description: 'Detect potential issues, bugs, and code smells',
       category: 'code-analysis',
       tags: ['issues', 'bugs', 'code-smells']
     },
     {
-      name: 'synthesizeFindings',
-      description: 'Synthesize multiple analysis findings into coherent architectural insights',
+      name: 'findPatterns',
+      description: 'Find code patterns, anti-patterns, and best practice violations',
+      category: 'code-analysis',
+      tags: ['patterns', 'anti-patterns', 'best-practices']
+    },
+    {
+      name: 'generateReport',
+      description: 'Generate a standalone HTML report visualizing architectural insights and dependency graphs',
       category: 'architectural',
-      tags: ['synthesis', 'architecture', 'insights']
+      tags: ['report', 'visualization', 'architecture']
+    },
+    {
+      name: 'identifyPatterns',
+      description: 'Identify architectural patterns and design principles',
+      category: 'architectural',
+      tags: ['patterns', 'architecture', 'design']
     },
     {
       name: 'mapArchitecture',
@@ -122,10 +128,16 @@ export function discoverTools(query?: string) {
       tags: ['architecture', 'mapping', 'layers']
     },
     {
-      name: 'identifyPatterns',
-      description: 'Identify architectural patterns and design principles',
+      name: 'synthesizeFindings',
+      description: 'Synthesize multiple analysis findings into coherent architectural insights',
       category: 'architectural',
-      tags: ['patterns', 'architecture', 'design']
+      tags: ['synthesis', 'architecture', 'insights']
+    },
+    {
+      name: 'buildDocumentation',
+      description: 'Generate comprehensive documentation from code analysis',
+      category: 'context-building',
+      tags: ['documentation', 'generation', 'comprehensive']
     },
     {
       name: 'gatherContext',
@@ -138,12 +150,6 @@ export function discoverTools(query?: string) {
       description: 'Create concise summary of module functionality and purpose',
       category: 'context-building',
       tags: ['summary', 'module', 'documentation']
-    },
-    {
-      name: 'buildDocumentation',
-      description: 'Generate comprehensive documentation from code analysis',
-      category: 'context-building',
-      tags: ['documentation', 'generation', 'comprehensive']
     }
   ];
   

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Synthesize multiple analysis findings into coherent architectural insights
@@ -9,7 +9,7 @@ import { MLXClient } from '../../mcp-server/src/client.js';
  * Tags: synthesis, architecture, insights
  */
 
-const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({  })), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
+const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({ type: z.string().optional(), severity: z.enum(['low', 'medium', 'high', 'critical']).optional(), detail: z.string().optional(), message: z.string().optional() })), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
 
 export interface synthesizeFindingsInput extends z.infer<typeof synthesizeFindingsSchema> {}
 
@@ -32,8 +32,7 @@ export async function synthesizeFindings(input: synthesizeFindingsInput): Promis
   const validatedInput = synthesizeFindingsSchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildsynthesizeFindingsPrompt(validatedInput);

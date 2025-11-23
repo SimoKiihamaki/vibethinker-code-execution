@@ -35,7 +35,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildanalyzeFunctionPrompt(validatedInput);
+  const prompt = buildAnalyzeFunctionPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
     
     return {
       success: true,
-      data: parseanalyzeFunctionResult(result, validatedInput),
+      data: parseAnalyzeFunctionResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
 /**
  * Build context-aware prompt for analyzeFunction
  */
-function buildanalyzeFunctionPrompt(input: analyzeFunctionInput): string {
+function buildAnalyzeFunctionPrompt(input: analyzeFunctionInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure analyzeFunction results
  */
-function parseanalyzeFunctionResult(result: string, input: analyzeFunctionInput): any {
+function parseAnalyzeFunctionResult(result: string, input: analyzeFunctionInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
