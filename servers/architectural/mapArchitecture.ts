@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Create comprehensive architectural map of the codebase
@@ -35,7 +35,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildmapArchitecturePrompt(validatedInput);
+  const prompt = buildMapArchitecturePrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
     
     return {
       success: true,
-      data: parsemapArchitectureResult(result, validatedInput),
+      data: parseMapArchitectureResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
 /**
  * Build context-aware prompt for mapArchitecture
  */
-function buildmapArchitecturePrompt(input: mapArchitectureInput): string {
+function buildMapArchitecturePrompt(input: mapArchitectureInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure mapArchitecture results
  */
-function parsemapArchitectureResult(result: string, input: mapArchitectureInput): any {
+function parseMapArchitectureResult(result: string, input: mapArchitectureInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);

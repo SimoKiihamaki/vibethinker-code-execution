@@ -10,8 +10,6 @@ export const analyzeFunction: ToolDefinition = {
     inputSchema: z.object({
         filePath: z.string().describe('File containing the function'),
         functionName: z.string().describe('Name of the function to analyze'),
-        includeCallers: z.boolean().default(false).describe('Include function callers'),
-        includeCallees: z.boolean().default(false).describe('Include functions called by this one'),
     }),
     handler: async (args) => {
         try {
@@ -52,12 +50,13 @@ export const analyzeFunction: ToolDefinition = {
 
             // Try method definition
             if (!node) {
+                const escapedName = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 node = root.find({
                     rule: {
                         kind: 'method_definition',
                         has: {
                             field: 'name',
-                            regex: `^${targetName}$`
+                            regex: `^${escapedName}$`
                         }
                     }
                 });
