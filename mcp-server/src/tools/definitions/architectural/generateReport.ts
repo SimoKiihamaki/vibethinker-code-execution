@@ -21,6 +21,16 @@ export const generateReport: ToolDefinition = {
         // Resolve outputFile relative to the validated directory instead of cwd
         const outputFile = await validatePath(path.resolve(dir, validated.outputFile));
 
+        // HTML escape utility to prevent XSS
+        const escapeHtml = (str: string) =>
+            str.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#039;');
+
+        const escapedDirName = escapeHtml(path.basename(dir));
+
         // Placeholder for data gathering - in a real scenario, we'd call other tools or use shared logic
         // For now, we'll generate a basic report structure
 
@@ -30,7 +40,7 @@ export const generateReport: ToolDefinition = {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Architecture Report - ${path.basename(dir)}</title>
+    <title>Architecture Report - ${escapedDirName}</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; }
         h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -43,7 +53,7 @@ export const generateReport: ToolDefinition = {
     </style>
 </head>
 <body>
-    <h1>Architecture Report: ${path.basename(dir)}</h1>
+    <h1>Architecture Report: ${escapedDirName}</h1>
     <p>Generated on ${new Date().toLocaleString()}</p>
 
     <div class="card">
@@ -117,7 +127,7 @@ graph TD
     },
     tags: ['report', 'visualization', 'architecture'],
     complexity: 'moderate',
-    externalDependencies: [], // This tool has no dependencies.
-    npmDependencies: [],
-    internalDependencies: [],
+    externalDependencies: [], // No external tools required
+    npmDependencies: ['zod'],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
 };
