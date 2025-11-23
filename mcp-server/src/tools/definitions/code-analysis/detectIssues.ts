@@ -60,12 +60,13 @@ export const detectIssues: ToolDefinition = {
             try {
                 const content = await fs.readFile(filePath, 'utf8');
 
+                let astGrepRanForLooseEquality = false;
                 if (requestedTypes.has('bugs')) {
                     const sg = await loadAstGrep();
                     if (sg) {
                         try {
                             const ext = path.extname(filePath).toLowerCase();
-                            const lang = ext === '.ts' ? sg.Lang.TypeScript : sg.Lang.JavaScript;
+                            const lang = (ext === '.ts' || ext === '.tsx') ? sg.Lang.TypeScript : sg.Lang.JavaScript;
                             const root = sg.parse(lang, content).root();
                             const loosePattern = sg.pattern(lang, '$A == $B');
                             const matches = root.findAll(loosePattern);
@@ -80,12 +81,17 @@ export const detectIssues: ToolDefinition = {
                                     confidence,
                                 });
                             }
+                            astGrepRanForLooseEquality = true;
                         } catch (error) {
                             logger.debug(`ast-grep loose equality detection failed for ${filePath}: ${error}`);
                         }
                     }
                 }
                 for (const detector of detectors) {
+                    // Skip loose equality regex if AST-grep already detected it
+                    if (astGrepRanForLooseEquality && detector.message === 'Loose equality used; prefer ===') {
+                        continue;
+                    }
                     const flags = detector.regex.flags.includes('g') ? detector.regex.flags : `${detector.regex.flags}g`;
                     const regex = new RegExp(detector.regex.source, flags);
                     let match: RegExpExecArray | null;
