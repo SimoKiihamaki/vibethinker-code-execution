@@ -88,6 +88,9 @@ graph TD
                 // File doesn't exist, proceed with write
             }
 
+            // Ensure parent directory exists before writing
+            await fs.mkdir(path.dirname(outputFile), { recursive: true });
+
             // Atomic file write with rollback protection
             const tempFile = path.join(path.dirname(outputFile), `.${path.basename(outputFile)}.${process.pid}.${Date.now()}.tmp`);
             try {

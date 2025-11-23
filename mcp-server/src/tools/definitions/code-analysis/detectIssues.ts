@@ -134,15 +134,29 @@ export const detectIssues: ToolDefinition = {
             }
 
             if (stats.isDirectory()) {
-                const entries = await fs.readdir(currentPath, { withFileTypes: true });
+                let entries;
+                try {
+                    entries = await fs.readdir(currentPath, { withFileTypes: true });
+                } catch (error) {
+                    logger.debug(`Failed to read directory ${currentPath}: ${error}`);
+                    return;
+                }
                 for (const entry of entries) {
                     if (entry.name.startsWith('.')) continue;
                     if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
-                    const located = await validatePath(path.join(currentPath, entry.name));
-                    if (entry.isDirectory()) {
-                        await walk(located);
-                    } else if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(entry.name)) {
-                        await analyzeFile(located);
+
+                    // Re-validate discovered paths to ensure traversal stays within repo
+                    const candidatePath = path.join(currentPath, entry.name);
+                    try {
+                        const validatedPath = await validatePath(candidatePath);
+                        if (entry.isDirectory()) {
+                            await walk(validatedPath);
+                        } else if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(entry.name)) {
+                            await analyzeFile(validatedPath);
+                        }
+                    } catch (error) {
+                        logger.debug(`Path validation failed for ${candidatePath}: ${error}`);
+                        continue;
                     }
                 }
             } else if (stats.isFile()) {
@@ -162,6 +176,6 @@ export const detectIssues: ToolDefinition = {
     tags: ['issues', 'bugs', 'code-smells'],
     complexity: 'complex',
     externalDependencies: ['issue-detector', 'static-analyzer'],
-    npmDependencies: [],
+    npmDependencies: ['@ast-grep/napi'],
     internalDependencies: [],
 };

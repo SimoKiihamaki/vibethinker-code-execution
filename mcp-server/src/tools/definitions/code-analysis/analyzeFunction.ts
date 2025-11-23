@@ -29,26 +29,36 @@ export const analyzeFunction: ToolDefinition = {
             const root = sg.root();
             const targetName = String(args.functionName);
 
-            // Find function definition using rule objects to avoid pattern parsing errors
+            // Find function definition using structurally driven rules
             // Try function declaration
             let node = root.find({
                 rule: {
                     kind: 'function_declaration',
-                    pattern: `function ${targetName}($$$) { $$$ }`
+                    has: {
+                        field: 'name',
+                        regex: `^${targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`
+                    }
                 }
             });
 
-            // Try arrow function assignment
+            // Try variable declarator (let/const/var function assignments)
             if (!node) {
+                const escapedName = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 node = root.find({
                     rule: {
                         kind: 'variable_declarator',
-                        pattern: `const ${targetName} = ($$$) => { $$$ }`
+                        has: {
+                            field: 'name',
+                            regex: `^${escapedName}$`
+                        },
+                        has: {
+                            kind: 'arrow_function'
+                        }
                     }
                 });
             }
 
-            // Try method definition
+            // Try method definition in class/object
             if (!node) {
                 const escapedName = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 node = root.find({
@@ -62,11 +72,46 @@ export const analyzeFunction: ToolDefinition = {
                 });
             }
 
+            // Try property with arrow function in object literal
+            if (!node) {
+                const escapedName = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                node = root.find({
+                    rule: {
+                        kind: 'pair',
+                        has: {
+                            field: 'key',
+                            regex: `^${escapedName}$`
+                        },
+                        has: {
+                            kind: 'arrow_function'
+                        }
+                    }
+                });
+            }
+
+            // Try function expression assignment
+            if (!node) {
+                const escapedName = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                node = root.find({
+                    rule: {
+                        kind: 'assignment_expression',
+                        has: {
+                            field: 'left',
+                            regex: `^${escapedName}$`
+                        },
+                        has: {
+                            kind: 'function'
+                        }
+                    }
+                });
+            }
+
             if (!node) {
                 return {
                     function: { name: targetName, found: false },
                     analysis: {},
-                    filePath: args.filePath
+                    filePath: args.filePath,
+                    functionName: targetName,
                 };
             }
 
@@ -108,7 +153,8 @@ export const analyzeFunction: ToolDefinition = {
                 function: { name: args.functionName, found: false },
                 analysis: {},
                 error: String(error),
-                filePath: args.filePath
+                filePath: args.filePath,
+                functionName: args.functionName,
             };
         }
     },
