@@ -2,18 +2,18 @@ import { z } from 'zod';
 import { getMLXClient } from '../shared/utils.js';
 
 /**
- * Create comprehensive architectural map of the codebase
+ * Generate a standalone HTML report visualizing architectural insights and dependency graphs
  * 
  * Category: architectural
- * Complexity: complex
- * Tags: architecture, mapping, layers
+ * Complexity: moderate
+ * Tags: report, visualization, architecture
  */
 
-const mapArchitectureSchema = z.object({ rootPath: z.string().describe('Root path of the repository'), layers: z.array(z.string()).optional(), includeDependencies: z.boolean().default(true) });
+const generateReportSchema = z.object({ directory: z.string().describe('Root directory of the project'), outputFile: z.string().default("architecture-report.html"), includeGraphs: z.boolean().default(true) });
 
-export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> {}
+export interface generateReportInput extends z.infer<typeof generateReportSchema> {}
 
-export interface mapArchitectureResult {
+export interface generateReportResult {
   success: boolean;
   data?: any;
   error?: string;
@@ -25,17 +25,17 @@ export interface mapArchitectureResult {
 }
 
 /**
- * Execute mapArchitecture tool with progressive disclosure
+ * Execute generateReport tool with progressive disclosure
  */
-export async function mapArchitecture(input: mapArchitectureInput): Promise<mapArchitectureResult> {
+export async function generateReport(input: generateReportInput): Promise<generateReportResult> {
   // Validate input
-  const validatedInput = mapArchitectureSchema.parse(input);
+  const validatedInput = generateReportSchema.parse(input);
   
   // Get MLX client instance
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildmapArchitecturePrompt(validatedInput);
+  const prompt = buildgenerateReportPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
     
     return {
       success: true,
-      data: parsemapArchitectureResult(result, validatedInput),
+      data: parsegenerateReportResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -71,9 +71,9 @@ export async function mapArchitecture(input: mapArchitectureInput): Promise<mapA
 }
 
 /**
- * Build context-aware prompt for mapArchitecture
+ * Build context-aware prompt for generateReport
  */
-function buildmapArchitecturePrompt(input: mapArchitectureInput): string {
+function buildgenerateReportPrompt(input: generateReportInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -85,10 +85,10 @@ Constraints:
 - Do not include meta-instructions or internal reasoning
 - Keep natural-language responses under 180 words
 
-Tool: mapArchitecture
-Description: Create comprehensive architectural map of the codebase
+Tool: generateReport
+Description: Generate a standalone HTML report visualizing architectural insights and dependency graphs
 Category: architectural
-Complexity: complex
+Complexity: moderate
 
 Input:
 ${JSON.stringify(input, null, 2)}
@@ -101,9 +101,9 @@ Output requirements:
 }
 
 /**
- * Parse and structure mapArchitecture results
+ * Parse and structure generateReport results
  */
-function parsemapArchitectureResult(result: string, input: mapArchitectureInput): any {
+function parsegenerateReportResult(result: string, input: generateReportInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
