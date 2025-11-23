@@ -9,7 +9,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
  * Tags: function, analysis, complexity
  */
 
-const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze'), includeCallers: z.boolean().default(false), includeCallees: z.boolean().default(false) });
+const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze') });
 
 export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
 

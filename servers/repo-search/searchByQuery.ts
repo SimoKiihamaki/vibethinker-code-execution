@@ -35,7 +35,7 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildSearchByQueryPrompt(validatedInput);
+  const prompt = buildsearchByQueryPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
     
     return {
       success: true,
-      data: parseSearchByQueryResult(result, validatedInput),
+      data: parsesearchByQueryResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
 /**
  * Build context-aware prompt for searchByQuery
  */
-function buildSearchByQueryPrompt(input: searchByQueryInput): string {
+function buildsearchByQueryPrompt(input: searchByQueryInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure searchByQuery results
  */
-function parseSearchByQueryResult(result: string, input: searchByQueryInput): any {
+function parsesearchByQueryResult(result: string, input: searchByQueryInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);

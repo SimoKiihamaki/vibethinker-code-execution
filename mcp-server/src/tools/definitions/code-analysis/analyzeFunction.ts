@@ -115,6 +115,6 @@ export const analyzeFunction: ToolDefinition = {
     tags: ['function', 'analysis', 'complexity'],
     complexity: 'moderate',
     externalDependencies: ['function-analyzer'],
-    npmDependencies: ['ast-grep'],
+    npmDependencies: ['@ast-grep/napi'],
     internalDependencies: [],
 };

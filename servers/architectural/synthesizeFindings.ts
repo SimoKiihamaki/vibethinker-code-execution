@@ -9,7 +9,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
  * Tags: synthesis, architecture, insights
  */
 
-const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({  })), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
+const synthesizeFindingsSchema = z.object({ findings: z.array(z.object({ type: z.string().optional(), severity: z.enum(['low', 'medium', 'high', 'critical']).optional(), detail: z.string().optional(), message: z.string().optional() })), topic: z.string().describe('Topic or area of focus'), depth: z.enum(['overview', 'detailed', 'comprehensive']).default("detailed"), includeRecommendations: z.boolean().default(true) });
 
 export interface synthesizeFindingsInput extends z.infer<typeof synthesizeFindingsSchema> {}
 
