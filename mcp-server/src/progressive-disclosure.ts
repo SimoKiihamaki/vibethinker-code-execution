@@ -147,7 +147,8 @@ export class ProgressiveDisclosureGenerator {
     }
 
     const dir = path.dirname(filePath);
-    const tempFile = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
+    const randomPart = crypto.randomBytes(6).toString('hex');
+    const tempFile = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomPart}.tmp`);
     await fs.mkdir(dir, { recursive: true });
 
     try {

@@ -38,6 +38,14 @@ export function escapeRegExp(string: string): string {
 }
 
 export async function resolveImportPath(fromFile: string, specifier: string): Promise<string | null> {
+    // Input validation
+    if (!fromFile || typeof fromFile !== 'string') {
+        throw new Error('Invalid fromFile: must be a non-empty string');
+    }
+    if (!specifier || typeof specifier !== 'string') {
+        throw new Error('Invalid specifier: must be a non-empty string');
+    }
+
     const repoRealPath = await getRepositoryRealPath();
     const basePath = path.resolve(path.dirname(fromFile), specifier);
     const candidates = [basePath, ...SOURCE_EXTENSIONS.map(ext => `${basePath}${ext}`)];
