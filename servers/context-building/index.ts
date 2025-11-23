@@ -1,18 +1,18 @@
+import { buildDocumentation } from './buildDocumentation.js';
 import { gatherContext } from './gatherContext.js';
 import { summarizeModule } from './summarizeModule.js';
-import { buildDocumentation } from './buildDocumentation.js';
 
 // context-building tools for progressive disclosure
 export {
+  buildDocumentation,
   gatherContext,
   summarizeModule,
-  buildDocumentation,
 };
 
 // Category metadata
 export const category = {
   name: 'context-building',
   description: 'Tools for context building',
-  tools: ['gatherContext', 'summarizeModule', 'buildDocumentation'],
+  tools: ['buildDocumentation', 'gatherContext', 'summarizeModule'],
   complexity: 'complex',
 };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MLXClient } from '../../mcp-server/src/client.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Search repository by natural language query using ripgrep and semantic understanding
@@ -32,8 +32,7 @@ export async function searchByQuery(input: searchByQueryInput): Promise<searchBy
   const validatedInput = searchByQuerySchema.parse(input);
   
   // Get MLX client instance
-  const mlxClient = new MLXClient();
-  await mlxClient.initialize();
+  const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
   const prompt = buildsearchByQueryPrompt(validatedInput);

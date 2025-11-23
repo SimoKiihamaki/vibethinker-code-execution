@@ -2,18 +2,18 @@ import { z } from 'zod';
 import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
- * Find code patterns, anti-patterns, and best practice violations
+ * Generate a standalone HTML report visualizing architectural insights and dependency graphs
  * 
- * Category: code-analysis
- * Complexity: complex
- * Tags: patterns, anti-patterns, best-practices
+ * Category: architectural
+ * Complexity: moderate
+ * Tags: report, visualization, architecture
  */
 
-const findPatternsSchema = z.object({ directory: z.string().describe('Directory to search'), patternTypes: z.array(z.enum(['anti-patterns', 'best-practices', 'security', 'performance'])).default(["anti-patterns"]), severity: z.enum(['low', 'medium', 'high']).default("medium") });
+const generateReportSchema = z.object({ directory: z.string().describe('Root directory of the project'), outputFile: z.string().default("architecture-report.html"), includeGraphs: z.boolean().default(true) });
 
-export interface findPatternsInput extends z.infer<typeof findPatternsSchema> {}
+export interface generateReportInput extends z.infer<typeof generateReportSchema> {}
 
-export interface findPatternsResult {
+export interface generateReportResult {
   success: boolean;
   data?: any;
   error?: string;
@@ -25,17 +25,17 @@ export interface findPatternsResult {
 }
 
 /**
- * Execute findPatterns tool with progressive disclosure
+ * Execute generateReport tool with progressive disclosure
  */
-export async function findPatterns(input: findPatternsInput): Promise<findPatternsResult> {
+export async function generateReport(input: generateReportInput): Promise<generateReportResult> {
   // Validate input
-  const validatedInput = findPatternsSchema.parse(input);
+  const validatedInput = generateReportSchema.parse(input);
   
   // Get MLX client instance
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildfindPatternsPrompt(validatedInput);
+  const prompt = buildgenerateReportPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
     
     return {
       success: true,
-      data: parsefindPatternsResult(result, validatedInput),
+      data: parsegenerateReportResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -71,9 +71,9 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
 }
 
 /**
- * Build context-aware prompt for findPatterns
+ * Build context-aware prompt for generateReport
  */
-function buildfindPatternsPrompt(input: findPatternsInput): string {
+function buildgenerateReportPrompt(input: generateReportInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -85,10 +85,10 @@ Constraints:
 - Do not include meta-instructions or internal reasoning
 - Keep natural-language responses under 180 words
 
-Tool: findPatterns
-Description: Find code patterns, anti-patterns, and best practice violations
-Category: code-analysis
-Complexity: complex
+Tool: generateReport
+Description: Generate a standalone HTML report visualizing architectural insights and dependency graphs
+Category: architectural
+Complexity: moderate
 
 Input:
 ${JSON.stringify(input, null, 2)}
@@ -101,9 +101,9 @@ Output requirements:
 }
 
 /**
- * Parse and structure findPatterns results
+ * Parse and structure generateReport results
  */
-function parsefindPatternsResult(result: string, input: findPatternsInput): any {
+function parsegenerateReportResult(result: string, input: generateReportInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
