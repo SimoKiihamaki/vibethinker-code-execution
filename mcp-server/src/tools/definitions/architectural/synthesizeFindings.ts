@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ToolDefinition } from '../../types.js';
-import { synthesizeFindings as serverSynthesize } from '../../../servers/architectural/synthesizeFindings.js';
+import { synthesizeFindings as serverSynthesize } from '../../../../../servers/architectural/synthesizeFindings.js';
 
 export const synthesizeFindings: ToolDefinition = {
     name: 'synthesizeFindings',
