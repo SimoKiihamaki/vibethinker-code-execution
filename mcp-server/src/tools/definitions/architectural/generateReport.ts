@@ -89,5 +89,5 @@ graph TD
     },
     tags: ['report', 'visualization', 'architecture'],
     complexity: 'moderate',
-    dependencies: [],
+    // This tool has no dependencies.
 };

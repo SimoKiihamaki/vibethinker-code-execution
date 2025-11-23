@@ -70,5 +70,8 @@ export const mapArchitecture: ToolDefinition = {
     },
     tags: ['architecture', 'mapping', 'layers'],
     complexity: 'complex',
-    dependencies: [],
+    dependencies: [
+        '../../utils.js:validatePath',
+        '../../utils.js:resolveImportPath'
+    ],
 };

@@ -41,9 +41,9 @@ export const analyzeFile: ToolDefinition = {
         }
 
         const lines = content.split(/\r?\n/);
-        let complexity = 1;
         let functionCount = 0;
         const findings: Array<{ type: string; file: string; line: number; details: string }> = [];
+        let complexity: number;
 
         if (sg) {
             const root = sg.root();

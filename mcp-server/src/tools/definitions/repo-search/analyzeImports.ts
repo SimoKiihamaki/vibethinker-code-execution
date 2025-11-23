@@ -121,5 +121,8 @@ export const analyzeImports: ToolDefinition = {
     },
     tags: ['imports', 'cycles', 'patterns'],
     complexity: 'complex',
-    dependencies: ['ast-grep', 'dependency-analyzer'],
+    dependencies: [
+        '../../utils.js:validatePath',
+        '../../utils.js:resolveImportPath'
+    ],
 };

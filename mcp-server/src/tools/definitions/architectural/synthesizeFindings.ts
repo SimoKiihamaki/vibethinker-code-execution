@@ -71,5 +71,5 @@ export const synthesizeFindings: ToolDefinition = {
     },
     tags: ['synthesis', 'architecture', 'insights'],
     complexity: 'complex',
-    dependencies: [],
+    // No external tool dependencies; this tool is self-contained.
 };
