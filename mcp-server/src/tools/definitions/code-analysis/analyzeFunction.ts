@@ -19,8 +19,8 @@ export const analyzeFunction: ToolDefinition = {
             // Initialize ast-grep
             let sg: any;
             try {
-                const { parse } = await import('@ast-grep/napi');
-                const lang = file.endsWith('.tsx') ? 'tsx' : file.endsWith('.ts') ? 'typescript' : 'javascript';
+                const { parse, Lang } = await import('@ast-grep/napi');
+                const lang = file.endsWith('.tsx') ? Lang.Tsx : file.endsWith('.ts') ? Lang.TypeScript : Lang.JavaScript;
                 sg = parse(lang, content);
             } catch (e) {
                 throw new Error(`Failed to initialize ast-grep: ${e}`);

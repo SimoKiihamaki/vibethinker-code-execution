@@ -65,9 +65,9 @@ const collectDependencies = async (moduleRoot: string): Promise<string[]> => {
                         const resolved = await resolveImportPath(fullPath, spec);
                         if (!resolved) continue;
                         const relative = path.relative(moduleRealPath, resolved);
-                    // Use '.' to represent a self-import (module referencing its root)
-                    const label = relative === '' ? '.' : relative;
-                    deps.add(label);
+                        // Use '.' to represent a self-import (module referencing its root)
+                        const label = relative === '' ? '.' : relative;
+                        deps.add(label);
                     } else {
                         deps.add(spec);
                     }
