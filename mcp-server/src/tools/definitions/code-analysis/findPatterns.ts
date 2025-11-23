@@ -97,9 +97,19 @@ export const findPatterns: ToolDefinition = {
                                 logger.debug(`ast-grep failed on ${p}: ${parseError}`);
                             }
                         } else {
-                            // Fallback regex checks
-                            if (content.includes('eval(')) violations.push({ type: 'security', message: 'eval() usage', file: p, severity: 'high' });
-                            if (content.includes('console.log')) violations.push({ type: 'best-practice', message: 'console.log usage', file: p, severity: 'low' });
+                            // Fallback regex checks, still honoring patternTypes and patternCounts
+                            if (args.patternTypes.includes('security') && content.includes('eval(')) {
+                                violations.push({ type: 'security', message: 'eval() usage', file: p, severity: 'high' });
+                                patternCounts['security:eval'] = (patternCounts['security:eval'] || 0) + 1;
+                            }
+                            if (args.patternTypes.includes('best-practices') && content.includes('console.log')) {
+                                violations.push({ type: 'best-practice', message: 'console.log usage', file: p, severity: 'low' });
+                                patternCounts['best-practices:console.log'] = (patternCounts['best-practices:console.log'] || 0) + 1;
+                            }
+                            if (args.patternTypes.includes('anti-patterns') && content.includes('var ')) {
+                                violations.push({ type: 'anti-pattern', message: 'var usage', file: p, severity: 'medium' });
+                                patternCounts['anti-patterns:var'] = (patternCounts['anti-patterns:var'] || 0) + 1;
+                            }
                         }
                     }
                 }

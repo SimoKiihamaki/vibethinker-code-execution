@@ -16,7 +16,7 @@ export const mapArchitecture: ToolDefinition = {
     handler: async (args) => {
         const root = await validatePath(String(args.rootPath || process.cwd()));
         const layers: string[] = Array.isArray(args.layers) ? args.layers : [];
-        const includeDeps = !!args.includeDependencies;
+        const includeDeps = typeof args.includeDependencies === 'boolean' ? args.includeDependencies : true;
         const files: string[] = [];
         async function walk(dir: string) {
             const entries = await fs.readdir(dir, { withFileTypes: true });

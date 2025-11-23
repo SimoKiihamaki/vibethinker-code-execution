@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Build comprehensive dependency graph of the repository

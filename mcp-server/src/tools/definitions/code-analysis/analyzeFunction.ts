@@ -75,17 +75,19 @@ export const analyzeFunction: ToolDefinition = {
             const functionBody = node.text();
             const lines = functionBody.split('\n').length;
 
-            // Calculate complexity (simple approximation)
-            // Use kind-based matching for elements that aren't valid standalone code (like catch/case)
-            const branches = node.findAll('if ($$$) { $$$ }').length +
-                node.findAll('for ($$$) { $$$ }').length +
-                node.findAll('while ($$$) { $$$ }').length +
+            // Calculate cyclomatic complexity (control flow branches only)
+            const branches =
+                node.findAll({ rule: { kind: 'if_statement' } }).length +
+                node.findAll({ rule: { kind: 'for_statement' } }).length +
+                node.findAll({ rule: { kind: 'while_statement' } }).length +
                 node.findAll({ rule: { kind: 'switch_case' } }).length +
                 node.findAll({ rule: { kind: 'catch_clause' } }).length +
-                node.findAll('$A && $B').length +
-                node.findAll('$A || $B').length;
+                node.findAll({ rule: { kind: 'conditional_expression' } }).length;
 
-            const params = node.find('($$$)')?.text().split(',').filter((p: string) => p.trim()).length || 0;
+            // Count formal parameters by traversing parameter list nodes
+            const paramList = node.find({ rule: { kind: 'formal_parameters' } });
+            const params = paramList ? paramList.findAll({ rule: { kind: 'required_parameter' } }).length +
+                                       paramList.findAll({ rule: { kind: 'optional_parameter' } }).length : 0;
 
             return {
                 function: {
