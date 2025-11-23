@@ -9,7 +9,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
  * Tags: function, analysis, complexity
  */
 
-const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze') });
+const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze'), includeCallers: z.boolean().default(false).optional().describe('Include analysis of functions that call this function'), includeCallees: z.boolean().default(false).optional().describe('Include analysis of functions called by this function') });
 
 export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
 
@@ -35,7 +35,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildAnalyzeFunctionPrompt(validatedInput);
+  const prompt = buildanalyzeFunctionPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
     
     return {
       success: true,
-      data: parseAnalyzeFunctionResult(result, validatedInput),
+      data: parseanalyzeFunctionResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function analyzeFunction(input: analyzeFunctionInput): Promise<anal
 /**
  * Build context-aware prompt for analyzeFunction
  */
-function buildAnalyzeFunctionPrompt(input: analyzeFunctionInput): string {
+function buildanalyzeFunctionPrompt(input: analyzeFunctionInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure analyzeFunction results
  */
-function parseAnalyzeFunctionResult(result: string, input: analyzeFunctionInput): any {
+function parseanalyzeFunctionResult(result: string, input: analyzeFunctionInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
