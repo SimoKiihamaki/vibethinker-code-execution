@@ -129,6 +129,6 @@ export const buildGraph: ToolDefinition = {
     },
     tags: ['graph', 'dependencies', 'visualization'],
     complexity: 'complex',
-    externalDependencies: ['graph-builder', 'dependency-analyzer'],
+    externalDependencies: [],
     internalDependencies: [],
 };

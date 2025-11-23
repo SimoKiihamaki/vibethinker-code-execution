@@ -28,6 +28,160 @@ const determineLanguage = (file: string) => {
     return null;
 };
 
+// Extracted pattern detection functions for improved testability and maintainability
+const detectSingleton = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods, fields } = classInfo;
+    const hasGetter = methods.some(m => m.name === 'getInstance' && m.isStatic);
+    const hasPrivateInstance = fields.some(f => f.isStatic && f.accessibility === 'private');
+
+    if (hasGetter && hasPrivateInstance) {
+        patterns.push({ name: 'Singleton', file: filePath, confidence: 'high' });
+    } else if (includeViolations && hasGetter && !hasPrivateInstance) {
+        violations.push({
+            name: 'Singleton',
+            file: filePath,
+            message: 'getInstance() exists but no private static instance field was found.'
+        });
+    }
+};
+
+const detectFactory = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods, name } = classInfo;
+    const lowerName = name.toLowerCase();
+    const exposesCreate = methods.some(m => m.name.startsWith('create'));
+
+    if (lowerName.includes('factory') || exposesCreate) {
+        patterns.push({ name: 'Factory', file: filePath, confidence: exposesCreate ? 'high' : 'medium' });
+        if (includeViolations) {
+            const usesNew = methods.some(m => /\bnew\s+[A-Z]/.test(m.text));
+            if (!usesNew) {
+                violations.push({ name: 'Factory', file: filePath, message: 'Factory does not instantiate objects with "new".' });
+            }
+        }
+    }
+};
+
+const detectObserver = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods } = classInfo;
+    const hasSubscribe = methods.some(m => m.name === 'subscribe');
+    const hasNotify = methods.some(m => m.name === 'notify');
+
+    if (hasSubscribe && hasNotify) {
+        patterns.push({ name: 'Observer', file: filePath, confidence: 'medium' });
+    } else if (includeViolations && (hasSubscribe || hasNotify)) {
+        violations.push({ name: 'Observer', file: filePath, message: 'Observer implementation missing subscribe/notify pair.' });
+    }
+};
+
+const detectController = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods, name } = classInfo;
+    const lowerName = name.toLowerCase();
+
+    if (lowerName.endsWith('controller')) {
+        patterns.push({ name: 'Controller', file: filePath, confidence: 'high' });
+        if (includeViolations) {
+            const hasHandler = methods.some(m => ['handle', 'execute'].includes(m.name));
+            if (!hasHandler) {
+                violations.push({ name: 'Controller', file: filePath, message: 'Controller lacks a handle/execute method.' });
+            }
+        }
+    }
+};
+
+const detectService = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods, name } = classInfo;
+    const lowerName = name.toLowerCase();
+
+    if (lowerName.endsWith('service')) {
+        patterns.push({ name: 'Service', file: filePath, confidence: 'high' });
+        const publicMethods = methods.filter(m => m.accessibility !== 'private');
+        if (includeViolations && publicMethods.length === 0) {
+            violations.push({ name: 'Service', file: filePath, message: 'Service classes should expose at least one public method.' });
+        }
+    }
+};
+
+const detectRepository = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[],
+    violations: ViolationFinding[],
+    includeViolations: boolean
+) => {
+    const { methods, name } = classInfo;
+    const lowerName = name.toLowerCase();
+
+    if (lowerName.endsWith('repository')) {
+        patterns.push({ name: 'Repository', file: filePath, confidence: 'high' });
+        if (includeViolations) {
+            const hasDataMethods = methods.some(m => ['find', 'save', 'get', 'put'].some(prefix => m.name.startsWith(prefix)));
+            if (!hasDataMethods) {
+                violations.push({ name: 'Repository', file: filePath, message: 'Repository should expose persistence operations (find/save/etc.).' });
+            }
+        }
+    }
+};
+
+const detectMicroservicesPattern = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[]
+) => {
+    const { name, text } = classInfo;
+    const lowerName = name.toLowerCase();
+    const serviceLikeName = name.toLowerCase().includes('service') || lowerName.includes('service');
+    const serviceMarkers = /express|fastify|grpc|controller/i.test(text);
+
+    if (/services?/i.test(filePath) && (serviceLikeName || serviceMarkers)) {
+        patterns.push({ name: 'ServiceModule', file: filePath, confidence: serviceMarkers ? 'high' : 'medium' });
+    }
+};
+
+const detectDddPattern = (
+    classInfo: ReturnType<typeof collectClassInfo>,
+    filePath: string,
+    patterns: PatternFinding[]
+) => {
+    const { name, text } = classInfo;
+    const dddMarkers = /(AggregateRoot|DomainEvent|Entity)/.test(text) || /class\s+\w+(Repository|Aggregate|Entity)/.test(text);
+
+    if (/(domain|aggregate)/i.test(filePath) && dddMarkers) {
+        patterns.push({ name: 'DDD Component', file: filePath, confidence: 'medium' });
+    } else if (dddMarkers) {
+        patterns.push({ name: 'DDD Component', file: filePath, confidence: 'low' });
+    }
+};
+
 const collectClassInfo = (classNode: any) => {
     const body = classNode.children().find((child: any) => child.kind() === 'class_body');
     const methodNodes = body ? body.children().filter((child: any) => child.kind() === 'method_definition') : [];
@@ -124,101 +278,29 @@ export const identifyPatterns: ToolDefinition = {
             const classNodes = root.findAll({ rule: { kind: 'class_declaration' } }) || [];
             for (const classNode of classNodes) {
                 const classInfo = collectClassInfo(classNode);
-                const { name, methods, fields, text } = classInfo;
-                const lowerName = name.toLowerCase();
 
-                const detectSingleton = () => {
-                    const hasGetter = methods.some(m => m.name === 'getInstance' && m.isStatic);
-                    const hasPrivateInstance = fields.some(f => f.isStatic && f.accessibility === 'private');
-                    if (hasGetter && hasPrivateInstance) {
-                        patterns.push({ name: 'Singleton', file: filePath, confidence: 'high' });
-                    } else if (includeViolations && hasGetter && !hasPrivateInstance) {
-                        violations.push({ name: 'Singleton', file: filePath, message: 'getInstance() exists but no private static instance field was found.' });
-                    }
-                };
-
-                const detectFactory = () => {
-                    const exposesCreate = methods.some(m => m.name.startsWith('create'));
-                    if (lowerName.includes('factory') || exposesCreate) {
-                        patterns.push({ name: 'Factory', file: filePath, confidence: exposesCreate ? 'high' : 'medium' });
-                        if (includeViolations) {
-                            const usesNew = methods.some(m => /\bnew\s+[A-Z]/.test(m.text));
-                            if (!usesNew) {
-                                violations.push({ name: 'Factory', file: filePath, message: 'Factory does not instantiate objects with "new".' });
-                            }
-                        }
-                    }
-                };
-
-                const detectObserver = () => {
-                    const hasSubscribe = methods.some(m => m.name === 'subscribe');
-                    const hasNotify = methods.some(m => m.name === 'notify');
-                    if (hasSubscribe && hasNotify) {
-                        patterns.push({ name: 'Observer', file: filePath, confidence: 'medium' });
-                    } else if (includeViolations && (hasSubscribe || hasNotify)) {
-                        violations.push({ name: 'Observer', file: filePath, message: 'Observer implementation missing subscribe/notify pair.' });
-                    }
-                };
-
-                const detectController = () => {
-                    if (lowerName.endsWith('controller')) {
-                        patterns.push({ name: 'Controller', file: filePath, confidence: 'high' });
-                        if (includeViolations) {
-                            const hasHandler = methods.some(m => ['handle', 'execute'].includes(m.name));
-                            if (!hasHandler) {
-                                violations.push({ name: 'Controller', file: filePath, message: 'Controller lacks a handle/execute method.' });
-                            }
-                        }
-                    }
-                };
-
-                const detectService = () => {
-                    if (lowerName.endsWith('service')) {
-                        patterns.push({ name: 'Service', file: filePath, confidence: 'high' });
-                        const publicMethods = methods.filter(m => m.accessibility !== 'private');
-                        if (includeViolations && publicMethods.length === 0) {
-                            violations.push({ name: 'Service', file: filePath, message: 'Service classes should expose at least one public method.' });
-                        }
-                    }
-                };
-
-                const detectRepository = () => {
-                    if (lowerName.endsWith('repository')) {
-                        patterns.push({ name: 'Repository', file: filePath, confidence: 'high' });
-                        if (includeViolations) {
-                            const hasDataMethods = methods.some(m => ['find', 'save', 'get', 'put'].some(prefix => m.name.startsWith(prefix)));
-                            if (!hasDataMethods) {
-                                violations.push({ name: 'Repository', file: filePath, message: 'Repository should expose persistence operations (find/save/etc.).' });
-                            }
-                        }
-                    }
-                };
-
+                // Design pattern detection
                 if (requestedTypes.includes('design-patterns')) {
-                    detectSingleton();
-                    detectFactory();
-                    detectObserver();
+                    detectSingleton(classInfo, filePath, patterns, violations, includeViolations);
+                    detectFactory(classInfo, filePath, patterns, violations, includeViolations);
+                    detectObserver(classInfo, filePath, patterns, violations, includeViolations);
                 }
+
+                // Architectural pattern detection
                 if (requestedTypes.includes('architectural-patterns')) {
-                    detectController();
-                    detectService();
-                    detectRepository();
+                    detectController(classInfo, filePath, patterns, violations, includeViolations);
+                    detectService(classInfo, filePath, patterns, violations, includeViolations);
+                    detectRepository(classInfo, filePath, patterns, violations, includeViolations);
                 }
-                // Lightweight heuristics for microservices/DDD detection combine path and content
+
+                // Microservices pattern detection
                 if (requestedTypes.includes('microservices')) {
-                    const serviceLikeName = name.toLowerCase().includes('service') || lowerName.includes('service');
-                    const serviceMarkers = /express|fastify|grpc|controller/i.test(text);
-                    if (/services?/i.test(filePath) && (serviceLikeName || serviceMarkers)) {
-                        patterns.push({ name: 'ServiceModule', file: filePath, confidence: serviceMarkers ? 'high' : 'medium' });
-                    }
+                    detectMicroservicesPattern(classInfo, filePath, patterns);
                 }
+
+                // DDD pattern detection
                 if (requestedTypes.includes('ddd')) {
-                    const dddMarkers = /(AggregateRoot|DomainEvent|Entity)/.test(text) || /class\s+\w+(Repository|Aggregate|Entity)/.test(text);
-                    if (/(domain|aggregate)/i.test(filePath) && dddMarkers) {
-                        patterns.push({ name: 'DDD Component', file: filePath, confidence: 'medium' });
-                    } else if (dddMarkers) {
-                        patterns.push({ name: 'DDD Component', file: filePath, confidence: 'low' });
-                    }
+                    detectDddPattern(classInfo, filePath, patterns);
                 }
             }
         };
@@ -269,4 +351,18 @@ export const identifyPatterns: ToolDefinition = {
     complexity: 'complex',
     externalDependencies: ['@ast-grep/napi'],
     internalDependencies: [],
+};
+
+// Export pattern detection functions for unit testing
+export {
+    detectSingleton,
+    detectFactory,
+    detectObserver,
+    detectController,
+    detectService,
+    detectRepository,
+    detectMicroservicesPattern,
+    detectDddPattern,
+    collectClassInfo,
+    determineLanguage
 };
