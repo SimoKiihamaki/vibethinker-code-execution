@@ -213,7 +213,7 @@ export const category = {
 
   private generateToolFile(tool: any): string {
     return `import { z } from 'zod';
-import { estimateTokens, getMLXClient } from '../../../servers/shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * ${tool.description}
@@ -330,13 +330,6 @@ function parse${tool.name}Result(result: string, input: ${tool.name}Input): any 
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }
 `;
   }
