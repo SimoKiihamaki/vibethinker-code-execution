@@ -46,16 +46,17 @@ const antiPatternFindingSchema = baseFindingSchema.extend({
   line: z.number().optional().describe('Line number of the anti-pattern'),
 });
 
-// Union of all finding types
-const findingSchema = z.discriminatedUnion('type', [
+// Discriminated union of known finding types
+const discriminatedFindingSchema = z.discriminatedUnion('type', [
   codeSmellFindingSchema,
   bugFindingSchema,
   securityFindingSchema,
   performanceFindingSchema,
   antiPatternFindingSchema,
-  // Allow legacy/extended finding types for backward compatibility
-  baseFindingSchema,
 ]);
+
+// Allow legacy/extended finding types for backward compatibility
+const findingSchema = z.union([discriminatedFindingSchema, baseFindingSchema]);
 
 const synthesizeFindingsSchema = z.object({
   findings: z.array(findingSchema),

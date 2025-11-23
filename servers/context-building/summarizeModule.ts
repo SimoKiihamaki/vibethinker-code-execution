@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -35,7 +35,7 @@ export async function summarizeModule(input: summarizeModuleInput): Promise<summ
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildsummarizeModulePrompt(validatedInput);
+  const prompt = buildSummarizeModulePrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function summarizeModule(input: summarizeModuleInput): Promise<summ
     
     return {
       success: true,
-      data: parsesummarizeModuleResult(result, validatedInput),
+      data: parseSummarizeModuleResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function summarizeModule(input: summarizeModuleInput): Promise<summ
 /**
  * Build context-aware prompt for summarizeModule
  */
-function buildsummarizeModulePrompt(input: summarizeModuleInput): string {
+function buildSummarizeModulePrompt(input: summarizeModuleInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure summarizeModule results
  */
-function parsesummarizeModuleResult(result: string, input: summarizeModuleInput): any {
+function parseSummarizeModuleResult(result: string, input: summarizeModuleInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);

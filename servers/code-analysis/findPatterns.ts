@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -35,7 +35,7 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
   const mlxClient = await getMLXClient();
   
   // Build context-aware prompt
-  const prompt = buildfindPatternsPrompt(validatedInput);
+  const prompt = buildFindPatternsPrompt(validatedInput);
   
   // Execute through MLX backend
   const startTime = Date.now();
@@ -50,7 +50,7 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
     
     return {
       success: true,
-      data: parsefindPatternsResult(result, validatedInput),
+      data: parseFindPatternsResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
 /**
  * Build context-aware prompt for findPatterns
  */
-function buildfindPatternsPrompt(input: findPatternsInput): string {
+function buildFindPatternsPrompt(input: findPatternsInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure findPatterns results
  */
-function parsefindPatternsResult(result: string, input: findPatternsInput): any {
+function parseFindPatternsResult(result: string, input: findPatternsInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
