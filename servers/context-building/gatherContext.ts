@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Gather comprehensive context about code, files, and relationships
