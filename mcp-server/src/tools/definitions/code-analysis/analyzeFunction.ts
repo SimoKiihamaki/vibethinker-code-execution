@@ -47,13 +47,15 @@ export const analyzeFunction: ToolDefinition = {
                 node = root.find({
                     rule: {
                         kind: 'variable_declarator',
-                        has: {
-                            field: 'name',
-                            regex: `^${escapedName}$`
-                        },
-                        has: {
-                            kind: 'arrow_function'
-                        }
+                        has: [
+                            {
+                                field: 'name',
+                                regex: `^${escapedName}$`
+                            },
+                            {
+                                kind: 'arrow_function'
+                            }
+                        ]
                     }
                 });
             }
@@ -78,13 +80,15 @@ export const analyzeFunction: ToolDefinition = {
                 node = root.find({
                     rule: {
                         kind: 'pair',
-                        has: {
-                            field: 'key',
-                            regex: `^${escapedName}$`
-                        },
-                        has: {
-                            kind: 'arrow_function'
-                        }
+                        has: [
+                            {
+                                field: 'key',
+                                regex: `^${escapedName}$`
+                            },
+                            {
+                                kind: 'arrow_function'
+                            }
+                        ]
                     }
                 });
             }
@@ -95,13 +99,15 @@ export const analyzeFunction: ToolDefinition = {
                 node = root.find({
                     rule: {
                         kind: 'assignment_expression',
-                        has: {
-                            field: 'left',
-                            regex: `^${escapedName}$`
-                        },
-                        has: {
-                            kind: 'function'
-                        }
+                        has: [
+                            {
+                                field: 'left',
+                                regex: `^${escapedName}$`
+                            },
+                            {
+                                kind: 'function'
+                            }
+                        ]
                     }
                 });
             }
