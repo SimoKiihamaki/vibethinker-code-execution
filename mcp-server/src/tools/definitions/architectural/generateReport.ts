@@ -115,5 +115,6 @@ graph TD
     tags: ['report', 'visualization', 'architecture'],
     complexity: 'moderate',
     externalDependencies: [], // This tool has no dependencies.
+    npmDependencies: [],
     internalDependencies: [],
 };

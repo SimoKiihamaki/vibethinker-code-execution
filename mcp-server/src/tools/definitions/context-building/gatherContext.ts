@@ -203,6 +203,7 @@ export const gatherContext: ToolDefinition = {
     tags: ['context', 'gathering', 'comprehensive'],
     complexity: 'moderate',
     externalDependencies: [],
+    npmDependencies: [],
     internalDependencies: [
         '../../utils.js:validatePath',
         '../../utils.js:logger'

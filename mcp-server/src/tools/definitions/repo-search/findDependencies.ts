@@ -68,6 +68,7 @@ export const findDependencies: ToolDefinition = {
     tags: ['dependencies', 'imports', 'graph'],
     complexity: 'complex',
     externalDependencies: [],
+    npmDependencies: [],
     internalDependencies: [
         '../../utils.js:validatePath',
         '../../utils.js:resolveImportPath'

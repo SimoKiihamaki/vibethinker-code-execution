@@ -82,5 +82,6 @@ export const synthesizeFindings: ToolDefinition = {
     complexity: 'complex',
     // No external tool dependencies; this tool is self-contained.
     externalDependencies: [],
+    npmDependencies: [],
     internalDependencies: [],
 };

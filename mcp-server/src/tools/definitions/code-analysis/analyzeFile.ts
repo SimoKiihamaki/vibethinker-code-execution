@@ -125,6 +125,7 @@ export const analyzeFile: ToolDefinition = {
     },
     tags: ['analysis', 'file', 'complexity'],
     complexity: 'moderate',
-    externalDependencies: ['ast-grep'],
+    externalDependencies: [],
+    npmDependencies: ['ast-grep'],
     internalDependencies: [],
 };

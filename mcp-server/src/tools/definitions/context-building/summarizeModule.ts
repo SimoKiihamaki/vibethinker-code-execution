@@ -178,5 +178,6 @@ export const summarizeModule: ToolDefinition = {
     tags: ['summary', 'module', 'documentation'],
     complexity: 'moderate',
     externalDependencies: ['summarizer', 'module-analyzer'],
+    npmDependencies: [],
     internalDependencies: [],
 };

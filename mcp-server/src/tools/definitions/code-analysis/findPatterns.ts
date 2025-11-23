@@ -133,6 +133,7 @@ export const findPatterns: ToolDefinition = {
     },
     tags: ['patterns', 'anti-patterns', 'best-practices'],
     complexity: 'complex',
-    externalDependencies: ['@ast-grep/napi'],
+    externalDependencies: [],
+    npmDependencies: ['@ast-grep/napi'],
     internalDependencies: [],
 };

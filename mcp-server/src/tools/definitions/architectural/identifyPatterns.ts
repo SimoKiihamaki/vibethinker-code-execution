@@ -159,7 +159,7 @@ const detectMicroservicesPattern = (
 ) => {
     const { name, text } = classInfo;
     const lowerName = name.toLowerCase();
-    const serviceLikeName = name.toLowerCase().includes('service') || lowerName.includes('service');
+    const serviceLikeName = lowerName.includes('service');
     const serviceMarkers = /express|fastify|grpc|controller/i.test(text);
 
     if (/services?/i.test(filePath) && (serviceLikeName || serviceMarkers)) {
@@ -172,7 +172,7 @@ const detectDddPattern = (
     filePath: string,
     patterns: PatternFinding[]
 ) => {
-    const { name, text } = classInfo;
+    const { text } = classInfo;
     const dddMarkers = /(AggregateRoot|DomainEvent|Entity)/.test(text) || /class\s+\w+(Repository|Aggregate|Entity)/.test(text);
 
     if (/(domain|aggregate)/i.test(filePath) && dddMarkers) {
@@ -349,7 +349,8 @@ export const identifyPatterns: ToolDefinition = {
     },
     tags: ['patterns', 'architecture', 'design'],
     complexity: 'complex',
-    externalDependencies: ['@ast-grep/napi'],
+    externalDependencies: [],
+    npmDependencies: ['@ast-grep/napi'],
     internalDependencies: [],
 };
 

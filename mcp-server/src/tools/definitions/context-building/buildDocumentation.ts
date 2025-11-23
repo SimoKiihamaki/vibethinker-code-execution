@@ -119,5 +119,6 @@ export const buildDocumentation: ToolDefinition = {
     tags: ['documentation', 'generation', 'comprehensive'],
     complexity: 'complex',
     externalDependencies: ['doc-generator', 'code-analyzer'],
+    npmDependencies: [],
     internalDependencies: [],
 };

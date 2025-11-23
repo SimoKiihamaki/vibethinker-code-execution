@@ -20,6 +20,7 @@ const isToolDefinition = (value: unknown): value is ToolDefinition => {
     Array.isArray(candidate.tags) &&
     typeof candidate.complexity === 'string' &&
     Array.isArray(candidate.externalDependencies) &&
+    Array.isArray(candidate.npmDependencies) &&
     Array.isArray(candidate.internalDependencies)
   );
 };

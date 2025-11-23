@@ -122,6 +122,7 @@ export const analyzeImports: ToolDefinition = {
     tags: ['imports', 'cycles', 'patterns'],
     complexity: 'complex',
     externalDependencies: [],
+    npmDependencies: [],
     internalDependencies: [
         '../../utils.js:validatePath',
         '../../utils.js:resolveImportPath'

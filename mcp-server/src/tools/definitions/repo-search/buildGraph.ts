@@ -130,5 +130,6 @@ export const buildGraph: ToolDefinition = {
     tags: ['graph', 'dependencies', 'visualization'],
     complexity: 'complex',
     externalDependencies: [],
+    npmDependencies: [],
     internalDependencies: [],
 };
