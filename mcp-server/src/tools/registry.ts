@@ -19,7 +19,8 @@ const isToolDefinition = (value: unknown): value is ToolDefinition => {
     typeof (candidate as any).handler === 'function' &&
     Array.isArray(candidate.tags) &&
     typeof candidate.complexity === 'string' &&
-    Array.isArray(candidate.dependencies)
+    Array.isArray(candidate.externalDependencies) &&
+    Array.isArray(candidate.internalDependencies)
   );
 };
 
