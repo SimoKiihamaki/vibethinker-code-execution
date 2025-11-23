@@ -19,7 +19,7 @@ const DETECTORS: Detector[] = [
     { type: 'code-smells', regex: /TODO|FIXME/, message: 'Unresolved TODO/FIXME comment', severity: 'low' },
     { type: 'code-smells', regex: /\bvar\b/, message: 'Use let/const instead of var', severity: 'medium' },
     { type: 'code-smells', regex: /\bconsole\.log\b/, message: 'console.log detected in source', severity: 'low' },
-    { type: 'bugs', regex: /(?<![=!<>])={2}(?!=)/, message: 'Loose equality used; prefer ===', severity: 'medium' },
+    { type: 'bugs', regex: /([^=!<>]|^)==([^=]|$)/, message: 'Loose equality used; prefer ===', severity: 'medium' },
     { type: 'bugs', regex: /catch\s*\(\s*[A-Za-z0-9_$]+\s*\)\s*{\s*(?:\/\/[^\n]*\n|\s)*}/si, message: 'Empty catch block detected', severity: 'medium' },
     { type: 'security', regex: /\beval\s*\(/, message: 'Avoid eval() for security reasons', severity: 'high' },
     { type: 'security', regex: /dangerouslySetInnerHTML/, message: 'dangerouslySetInnerHTML usage detected', severity: 'high' },

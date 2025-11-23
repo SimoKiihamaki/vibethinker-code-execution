@@ -80,7 +80,28 @@ graph TD
     `;
 
         try {
-            await fs.writeFile(outputFile, htmlContent);
+            // Check if file exists and log warning
+            try {
+                await fs.access(outputFile);
+                logger.warn(`Overwriting existing report at ${outputFile}`);
+            } catch {
+                // File doesn't exist, proceed with write
+            }
+
+            // Atomic file write with rollback protection
+            const tempFile = path.join(path.dirname(outputFile), `.${path.basename(outputFile)}.${process.pid}.${Date.now()}.tmp`);
+            try {
+                await fs.writeFile(tempFile, htmlContent, 'utf8');
+                await fs.rename(tempFile, outputFile);
+            } catch (error) {
+                try {
+                    await fs.rm(tempFile, { force: true });
+                } catch {
+                    // ignore cleanup errors
+                }
+                throw error;
+            }
+
             return {
                 success: true,
                 message: `Report generated at ${outputFile}`,
