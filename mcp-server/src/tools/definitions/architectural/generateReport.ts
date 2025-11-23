@@ -14,8 +14,12 @@ export const generateReport: ToolDefinition = {
         includeGraphs: z.boolean().default(true).describe('Include dependency graphs'),
     }),
     handler: async (args) => {
-        const dir = await validatePath(String(args.directory));
-        const outputFile = await validatePath(path.resolve(process.cwd(), String(args.outputFile)));
+        // Parse and validate input with schema
+        const validated = generateReport.inputSchema.parse(args);
+
+        const dir = await validatePath(validated.directory);
+        // Resolve outputFile relative to the validated directory instead of cwd
+        const outputFile = await validatePath(path.resolve(dir, validated.outputFile));
 
         // Placeholder for data gathering - in a real scenario, we'd call other tools or use shared logic
         // For now, we'll generate a basic report structure
@@ -51,7 +55,7 @@ export const generateReport: ToolDefinition = {
         <p>This report provides a high-level view of the project's architecture.</p>
     </div>
 
-    ${args.includeGraphs ? `
+    ${validated.includeGraphs ? `
     <div class="card">
         <h2>Dependency Graph</h2>
         <p>Visualization placeholder. In a full implementation, we would embed a D3.js or Mermaid graph here.</p>
@@ -89,5 +93,6 @@ graph TD
     },
     tags: ['report', 'visualization', 'architecture'],
     complexity: 'moderate',
-    dependencies: [], // This tool has no dependencies.
+    externalDependencies: [], // This tool has no dependencies.
+    internalDependencies: [],
 };

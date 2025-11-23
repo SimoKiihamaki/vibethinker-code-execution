@@ -8,5 +8,6 @@ export interface ToolDefinition {
     handler: (args: any) => Promise<any>;
     tags: string[];
     complexity: 'simple' | 'moderate' | 'complex';
-    dependencies: string[];
+    externalDependencies: string[]; // e.g., ['ripgrep']
+    internalDependencies: string[]; // e.g., ['../../utils.js:validatePath']
 }

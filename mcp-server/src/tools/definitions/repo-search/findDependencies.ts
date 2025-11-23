@@ -20,7 +20,6 @@ export const findDependencies: ToolDefinition = {
         const visited = new Set<string>();
         const deps: Array<{ source: string; target: string; type: string }> = [];
         const errors: Array<{ file: string; message: string }> = [];
-        const repoRoot = process.cwd();
         async function resolve(file: string, depth: number) {
             if (visited.has(file)) return;
             visited.add(file);
@@ -43,11 +42,6 @@ export const findDependencies: ToolDefinition = {
                     const resolved = await resolveImportPath(file, targetRel);
                     if (!resolved) {
                         errors.push({ file, message: `Failed to resolve ${targetRel}` });
-                        continue;
-                    }
-                    const relative = path.relative(repoRoot, resolved);
-                    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-                        errors.push({ file, message: `Resolved path ${resolved} is outside repository` });
                         continue;
                     }
                     targetPath = resolved;
@@ -73,7 +67,8 @@ export const findDependencies: ToolDefinition = {
     },
     tags: ['dependencies', 'imports', 'graph'],
     complexity: 'complex',
-    dependencies: [
+    externalDependencies: [],
+    internalDependencies: [
         '../../utils.js:validatePath',
         '../../utils.js:resolveImportPath'
     ],

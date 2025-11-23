@@ -34,7 +34,6 @@ export const analyzeFile: ToolDefinition = {
             let selectedLang = Lang.JavaScript;
             if (ext === '.tsx') selectedLang = Lang.Tsx;
             else if (ext === '.ts') selectedLang = Lang.TypeScript;
-            else if (ext === '.jsx') selectedLang = Lang.Tsx;
             sg = parse(selectedLang, content);
         } catch (e) {
             logger.warn(`ast-grep failed, falling back to regex: ${e instanceof Error ? e.message : String(e)}`);
@@ -126,5 +125,6 @@ export const analyzeFile: ToolDefinition = {
     },
     tags: ['analysis', 'file', 'complexity'],
     complexity: 'moderate',
-    dependencies: ['ast-grep'],
+    externalDependencies: ['ast-grep'],
+    internalDependencies: [],
 };

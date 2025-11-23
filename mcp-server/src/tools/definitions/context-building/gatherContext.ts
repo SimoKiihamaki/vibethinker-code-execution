@@ -201,5 +201,6 @@ export const gatherContext: ToolDefinition = {
     },
     tags: ['context', 'gathering', 'comprehensive'],
     complexity: 'moderate',
-    dependencies: ['context-gatherer', 'dependency-analyzer'],
+    externalDependencies: ['context-gatherer', 'dependency-analyzer'],
+    internalDependencies: [],
 };

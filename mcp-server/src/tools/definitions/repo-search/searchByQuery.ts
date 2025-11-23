@@ -242,5 +242,6 @@ export const searchByQuery: ToolDefinition = {
     },
     tags: ['search', 'ripgrep', 'semantic'],
     complexity: 'moderate',
-    dependencies: ['ripgrep'],
+    externalDependencies: ['ripgrep'],
+    internalDependencies: [],
 };

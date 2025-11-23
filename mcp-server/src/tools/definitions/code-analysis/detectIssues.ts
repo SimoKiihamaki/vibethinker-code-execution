@@ -161,5 +161,6 @@ export const detectIssues: ToolDefinition = {
     },
     tags: ['issues', 'bugs', 'code-smells'],
     complexity: 'complex',
-    dependencies: ['issue-detector', 'static-analyzer'],
+    externalDependencies: ['issue-detector', 'static-analyzer'],
+    internalDependencies: [],
 };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { getMLXClient } from '../servers/shared/utils.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations

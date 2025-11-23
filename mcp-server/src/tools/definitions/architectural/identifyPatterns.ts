@@ -266,5 +266,6 @@ export const identifyPatterns: ToolDefinition = {
     },
     tags: ['patterns', 'architecture', 'design'],
     complexity: 'complex',
-    dependencies: ['@ast-grep/napi'],
+    externalDependencies: ['@ast-grep/napi'],
+    internalDependencies: [],
 };
