@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
+import type { Dirent } from 'fs';
 import { ToolDefinition } from '../../types.js';
 import { validatePath, logger } from '../../utils.js';
 
@@ -234,7 +235,7 @@ export const identifyPatterns: ToolDefinition = {
             if (visitedDirs.has(realPath)) return;
             visitedDirs.add(realPath);
 
-            let entries: fs.Dirent[];
+            let entries: Dirent[];
             try {
                 entries = await fs.readdir(dir, { withFileTypes: true });
             } catch (error) {

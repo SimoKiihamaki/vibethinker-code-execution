@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
+import type { Dirent } from 'fs';
 import { ToolDefinition } from '../../types.js';
 import { validatePath, logger } from '../../utils.js';
 
@@ -82,7 +83,7 @@ async function summarizeReadmes(targetDir: string): Promise<string[]> {
 
 async function snapshotDirectory(targetDir: string, remainingDepth: number, visited: Set<string>): Promise<DirectoryNode[]> {
     const nodes: DirectoryNode[] = [];
-    let entries: fs.Dirent[];
+    let entries: Dirent[];
     try {
         entries = await fs.readdir(targetDir, { withFileTypes: true });
     } catch (error) {
@@ -201,6 +202,9 @@ export const gatherContext: ToolDefinition = {
     },
     tags: ['context', 'gathering', 'comprehensive'],
     complexity: 'moderate',
-    externalDependencies: ['context-gatherer', 'dependency-analyzer'],
-    internalDependencies: [],
+    externalDependencies: [],
+    internalDependencies: [
+        '../../utils.js:validatePath',
+        '../../utils.js:logger'
+    ],
 };
