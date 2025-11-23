@@ -127,5 +127,5 @@ export const analyzeFile: ToolDefinition = {
     complexity: 'moderate',
     externalDependencies: [],
     npmDependencies: ['@ast-grep/napi'],
-    internalDependencies: [],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
 };

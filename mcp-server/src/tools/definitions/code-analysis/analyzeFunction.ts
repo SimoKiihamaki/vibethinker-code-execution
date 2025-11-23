@@ -160,7 +160,7 @@ export const analyzeFunction: ToolDefinition = {
     },
     tags: ['function', 'analysis', 'complexity'],
     complexity: 'moderate',
-    externalDependencies: ['function-analyzer'],
+    externalDependencies: [],
     npmDependencies: ['@ast-grep/napi'],
-    internalDependencies: [],
+    internalDependencies: ['../../utils.js:validatePath'],
 };

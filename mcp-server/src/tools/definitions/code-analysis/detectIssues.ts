@@ -175,7 +175,7 @@ export const detectIssues: ToolDefinition = {
     },
     tags: ['issues', 'bugs', 'code-smells'],
     complexity: 'complex',
-    externalDependencies: ['issue-detector', 'static-analyzer'],
+    externalDependencies: [],
     npmDependencies: ['@ast-grep/napi'],
-    internalDependencies: [],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
 };

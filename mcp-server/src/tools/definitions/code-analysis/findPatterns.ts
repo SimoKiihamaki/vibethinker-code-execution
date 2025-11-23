@@ -135,5 +135,5 @@ export const findPatterns: ToolDefinition = {
     complexity: 'complex',
     externalDependencies: [],
     npmDependencies: ['@ast-grep/napi'],
-    internalDependencies: [],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
 };
