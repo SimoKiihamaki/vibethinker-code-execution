@@ -24,7 +24,7 @@ describe('buildGraph', () => {
 
         const result = await buildGraph({
             rootPath: '/src',
-            includeNodeModules: false
+            includeTypes: ['typescript', 'javascript']
         });
 
         expect(result.success).toBe(true);

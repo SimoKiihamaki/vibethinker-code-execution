@@ -3,7 +3,10 @@ import { MLXClient } from './client.js';
 import axios from 'axios';
 
 vi.mock('axios');
-vi.mock('fs');
+vi.mock('fs', () => ({
+  existsSync: vi.fn(() => false),
+  readFileSync: vi.fn()
+}));
 
 describe('MLXClient', () => {
     let client: MLXClient;
@@ -18,6 +21,9 @@ describe('MLXClient', () => {
     });
 
     it('should initialize with default config if file not found', async () => {
+        // Mock health check
+        vi.mocked(axios.get).mockResolvedValue({ status: 200 } as any);
+
         await client.initialize();
         const metrics = client.getMetrics();
         expect(metrics.totalInstances).toBe(1);

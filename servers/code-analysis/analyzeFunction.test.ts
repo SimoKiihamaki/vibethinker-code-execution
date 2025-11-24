@@ -25,8 +25,7 @@ describe('analyzeFunction', () => {
 
         const result = await analyzeFunction({
             functionName: 'processData',
-            filePath: '/src/processor.ts',
-            depth: 'detailed'
+            filePath: '/src/processor.ts'
         });
 
         expect(result.success).toBe(true);

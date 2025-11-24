@@ -25,7 +25,7 @@ describe('analyzeFile', () => {
 
         const result = await analyzeFile({
             filePath: '/src/utils.ts',
-            focus: 'complexity'
+            analysisType: 'complexity'
         });
 
         expect(result.success).toBe(true);
