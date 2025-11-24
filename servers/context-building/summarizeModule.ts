@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const summarizeModuleSchema = z.object({ modulePath: z.string().describe('Path to the module to summarize'), summaryType: z.enum(['brief', 'detailed', 'technical']).default("detailed"), includeDependencies: z.boolean().default(true) });
 
-export interface summarizeModuleInput extends z.infer<typeof summarizeModuleSchema> {}
+export interface summarizeModuleInput extends z.infer<typeof summarizeModuleSchema> { }
 
 export interface summarizeModuleResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface summarizeModuleResult {
 export async function summarizeModule(input: summarizeModuleInput): Promise<summarizeModuleResult> {
   // Validate input
   const validatedInput = summarizeModuleSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildSummarizeModulePrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseSummarizeModuleResult(result, validatedInput),

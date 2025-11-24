@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Analyze import patterns and circular dependencies
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const analyzeImportsSchema = z.object({ directory: z.string().describe('Directory to analyze'), detectCycles: z.boolean().default(true), analyzePatterns: z.boolean().default(true) });
 
-export interface analyzeImportsInput extends z.infer<typeof analyzeImportsSchema> {}
+export interface analyzeImportsInput extends z.infer<typeof analyzeImportsSchema> { }
 
 export interface analyzeImportsResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface analyzeImportsResult {
 export async function analyzeImports(input: analyzeImportsInput): Promise<analyzeImportsResult> {
   // Validate input
   const validatedInput = analyzeImportsSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildanalyzeImportsPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseanalyzeImportsResult(result, validatedInput),

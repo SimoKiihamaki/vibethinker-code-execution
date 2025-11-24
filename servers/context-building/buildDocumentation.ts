@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Generate comprehensive documentation from code analysis
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const buildDocumentationSchema = z.object({ target: z.string().describe('Target file or directory'), docType: z.enum(['api', 'architecture', 'usage', 'comprehensive']).default("comprehensive"), includeExamples: z.boolean().default(true) });
 
-export interface buildDocumentationInput extends z.infer<typeof buildDocumentationSchema> {}
+export interface buildDocumentationInput extends z.infer<typeof buildDocumentationSchema> { }
 
 export interface buildDocumentationResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface buildDocumentationResult {
 export async function buildDocumentation(input: buildDocumentationInput): Promise<buildDocumentationResult> {
   // Validate input
   const validatedInput = buildDocumentationSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildbuildDocumentationPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parsebuildDocumentationResult(result, validatedInput),

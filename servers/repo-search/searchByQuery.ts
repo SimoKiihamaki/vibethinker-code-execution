@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Search repository by natural language query using ripgrep and semantic understanding
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const searchByQuerySchema = z.object({ query: z.string().describe('Natural language search query'), fileTypes: z.array(z.string()).optional(), maxResults: z.number().int().default(20), contextLines: z.number().int().default(3) });
 
-export interface searchByQueryInput extends z.infer<typeof searchByQuerySchema> {}
+export interface searchByQueryInput extends z.infer<typeof searchByQuerySchema> { }
 
 export interface searchByQueryResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface searchByQueryResult {
 export async function searchByQuery(input: searchByQueryInput): Promise<searchByQueryResult> {
   // Validate input
   const validatedInput = searchByQuerySchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildsearchByQueryPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parsesearchByQueryResult(result, validatedInput),

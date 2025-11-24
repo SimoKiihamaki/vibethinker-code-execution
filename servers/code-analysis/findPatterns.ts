@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const findPatternsSchema = z.object({ directory: z.string().describe('Directory to search'), patternTypes: z.array(z.enum(['anti-patterns', 'best-practices', 'security', 'performance'])).default(["anti-patterns"]), severity: z.enum(['low', 'medium', 'high']).default("medium") });
 
-export interface findPatternsInput extends z.infer<typeof findPatternsSchema> {}
+export interface findPatternsInput extends z.infer<typeof findPatternsSchema> { }
 
 export interface findPatternsResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface findPatternsResult {
 export async function findPatterns(input: findPatternsInput): Promise<findPatternsResult> {
   // Validate input
   const validatedInput = findPatternsSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildFindPatternsPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseFindPatternsResult(result, validatedInput),
