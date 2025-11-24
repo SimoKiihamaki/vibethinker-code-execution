@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Identify architectural patterns and design principles
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const identifyPatternsSchema = z.object({ codebase: z.string().describe('Path to codebase to analyze'), patternTypes: z.array(z.enum(['design-patterns', 'architectural-patterns', 'microservices', 'ddd'])).default(["design-patterns"]), includeViolations: z.boolean().default(true) });
 
-export interface identifyPatternsInput extends z.infer<typeof identifyPatternsSchema> {}
+export interface identifyPatternsInput extends z.infer<typeof identifyPatternsSchema> { }
 
 export interface identifyPatternsResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface identifyPatternsResult {
 export async function identifyPatterns(input: identifyPatternsInput): Promise<identifyPatternsResult> {
   // Validate input
   const validatedInput = identifyPatternsSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildidentifyPatternsPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseidentifyPatternsResult(result, validatedInput),

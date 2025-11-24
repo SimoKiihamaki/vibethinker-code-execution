@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Generate a standalone HTML report visualizing architectural insights and dependency graphs
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const generateReportSchema = z.object({ directory: z.string().describe('Root directory of the project'), outputFile: z.string().default("architecture-report.html"), includeGraphs: z.boolean().default(true) });
 
-export interface generateReportInput extends z.infer<typeof generateReportSchema> {}
+export interface generateReportInput extends z.infer<typeof generateReportSchema> { }
 
 export interface generateReportResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface generateReportResult {
 export async function generateReport(input: generateReportInput): Promise<generateReportResult> {
   // Validate input
   const validatedInput = generateReportSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildgenerateReportPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parsegenerateReportResult(result, validatedInput),

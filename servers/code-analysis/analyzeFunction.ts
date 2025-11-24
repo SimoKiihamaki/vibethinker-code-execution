@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../servers/shared/utils.js';
+import { getMLXClient } from '../shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -11,7 +11,7 @@ import { getMLXClient } from '../servers/shared/utils.js';
 
 const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze') });
 
-export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
+export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> { }
 
 export interface analyzeFunctionResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface analyzeFunctionResult {
 export async function analyzeFunction(input: analyzeFunctionInput): Promise<analyzeFunctionResult> {
   // Validate input
   const validatedInput = analyzeFunctionSchema.parse(input);
-  
+
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-  
+
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);
-  
+
   // Execute through MLX backend
   const startTime = Date.now();
-  
+
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-    
+
     const executionTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: parseanalyzeFunctionResult(result, validatedInput),
