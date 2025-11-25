@@ -1,6 +1,67 @@
 import chalk from 'chalk';
-import { logger } from './utils.js';
-import { ToolDefinition } from './types.js';
+import { ZodError } from 'zod';
+import {
+  logger,
+  ErrorCodes,
+  createToolFailure,
+  createToolSuccess,
+  getRecoveryHint,
+  withErrorHandling,
+  isToolError,
+  type ErrorCode,
+  type StructuredError,
+} from './utils.js';
+import { ToolDefinition, ToolResult } from './types.js';
+
+/**
+ * Custom error class for registry-specific errors
+ */
+export class ToolRegistryError extends Error {
+  public readonly code: ErrorCode;
+  public readonly recoveryHint?: string;
+  public readonly context?: Record<string, unknown>;
+  public readonly timestamp: string;
+
+  constructor(
+    code: ErrorCode,
+    message: string,
+    options?: {
+      recoveryHint?: string;
+      context?: Record<string, unknown>;
+    }
+  ) {
+    super(message);
+    this.name = 'ToolRegistryError';
+    this.code = code;
+    this.recoveryHint = options?.recoveryHint;
+    this.context = options?.context;
+    this.timestamp = new Date().toISOString();
+    Error.captureStackTrace(this, ToolRegistryError);
+  }
+
+  toStructuredError(): StructuredError {
+    return {
+      code: this.code,
+      message: this.message,
+      recoveryHint: this.recoveryHint,
+      context: this.context,
+      timestamp: this.timestamp,
+    };
+  }
+}
+
+/**
+ * Tool execution metrics for monitoring
+ */
+interface ToolExecutionMetrics {
+  totalCalls: number;
+  successCount: number;
+  failureCount: number;
+  totalExecutionTime: number;
+  averageExecutionTime: number;
+  lastExecutionTime?: number;
+  lastError?: StructuredError;
+}
 
 // Import tool definitions
 import * as repoSearch from './definitions/repo-search/index.js';
@@ -30,10 +91,55 @@ export type { ToolDefinition };
 export class ToolRegistry {
   private tools: Map<string, ToolDefinition> = new Map();
   private categories: Map<string, ToolDefinition[]> = new Map();
+  private metrics: Map<string, ToolExecutionMetrics> = new Map();
 
   constructor() {
     // Synchronous initialization - tools must be registered immediately
     this.initializeTools();
+  }
+
+  /**
+   * Initialize metrics for a tool
+   */
+  private initializeMetrics(toolName: string): ToolExecutionMetrics {
+    const metrics: ToolExecutionMetrics = {
+      totalCalls: 0,
+      successCount: 0,
+      failureCount: 0,
+      totalExecutionTime: 0,
+      averageExecutionTime: 0,
+    };
+    this.metrics.set(toolName, metrics);
+    return metrics;
+  }
+
+  /**
+   * Update metrics after tool execution
+   */
+  private updateMetrics(
+    toolName: string,
+    executionTime: number,
+    success: boolean,
+    error?: StructuredError
+  ): void {
+    let metrics = this.metrics.get(toolName);
+    if (!metrics) {
+      metrics = this.initializeMetrics(toolName);
+    }
+
+    metrics.totalCalls++;
+    metrics.totalExecutionTime += executionTime;
+    metrics.averageExecutionTime = metrics.totalExecutionTime / metrics.totalCalls;
+    metrics.lastExecutionTime = executionTime;
+
+    if (success) {
+      metrics.successCount++;
+    } else {
+      metrics.failureCount++;
+      if (error) {
+        metrics.lastError = error;
+      }
+    }
   }
 
   private initializeTools(): void {
@@ -101,18 +207,151 @@ export class ToolRegistry {
     );
   }
 
-  async executeTool(name: string, args: any): Promise<any> {
-    const tool = this.getTool(name);
+  /**
+   * Execute a tool with structured error handling and metrics tracking
+   */
+  async executeTool<T = unknown>(name: string, args: unknown): Promise<ToolResult<T>> {
+    const startTime = Date.now();
 
+    // Check if tool exists
+    const tool = this.getTool(name);
     if (!tool) {
-      throw new Error(`Tool not found: ${name}`);
+      const error: StructuredError = {
+        code: ErrorCodes.TOOL_NOT_FOUND,
+        message: `Tool not found: ${name}`,
+        recoveryHint: 'Check the tool name and ensure it is registered. Use getAllTools() to see available tools.',
+        context: { requestedTool: name, availableTools: Array.from(this.tools.keys()) },
+        timestamp: new Date().toISOString(),
+      };
+
+      logger.error(`Tool execution failed: ${error.message}`);
+      return createToolFailure<T>(error.code, error.message, {
+        recoveryHint: error.recoveryHint,
+        metadata: { executionTime: Date.now() - startTime },
+      });
     }
 
     // Validate input arguments
-    const validatedArgs = tool.inputSchema.parse(args);
+    let validatedArgs: unknown;
+    try {
+      validatedArgs = tool.inputSchema.parse(args);
+    } catch (validationError) {
+      const executionTime = Date.now() - startTime;
+      const errorMessage =
+        validationError instanceof ZodError
+          ? `Validation failed: ${validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+          : `Validation failed: ${validationError instanceof Error ? validationError.message : String(validationError)}`;
 
-    // Execute tool handler
-    return await tool.handler(validatedArgs);
+      const error: StructuredError = {
+        code: ErrorCodes.TOOL_VALIDATION_ERROR,
+        message: errorMessage,
+        recoveryHint: 'Review the input parameters and ensure they match the expected schema',
+        context: {
+          toolName: name,
+          providedArgs: args,
+          validationErrors: validationError instanceof ZodError ? validationError.errors : undefined,
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      logger.warn(`Tool ${name} validation failed: ${errorMessage}`);
+      this.updateMetrics(name, executionTime, false, error);
+
+      return createToolFailure<T>(error.code, error.message, {
+        recoveryHint: error.recoveryHint,
+        metadata: { executionTime },
+      });
+    }
+
+    // Execute tool handler with error handling
+    try {
+      const result = await tool.handler(validatedArgs);
+      const executionTime = Date.now() - startTime;
+
+      logger.debug(`Tool ${chalk.cyan(name)} executed successfully in ${executionTime}ms`);
+      this.updateMetrics(name, executionTime, true);
+
+      return createToolSuccess<T>(result as T, {
+        executionTime,
+        toolVersion: tool.version,
+      });
+    } catch (executionError) {
+      const executionTime = Date.now() - startTime;
+      const errorMessage =
+        executionError instanceof Error ? executionError.message : String(executionError);
+
+      // Check if it's already a ToolRegistryError
+      if (executionError instanceof ToolRegistryError) {
+        this.updateMetrics(name, executionTime, false, executionError.toStructuredError());
+        return createToolFailure<T>(executionError.code, executionError.message, {
+          recoveryHint: executionError.recoveryHint,
+          metadata: { executionTime },
+        });
+      }
+
+      // Infer error code from error message
+      const errorCode = this.inferErrorCode(executionError);
+      const error: StructuredError = {
+        code: errorCode,
+        message: errorMessage,
+        recoveryHint: getRecoveryHint(errorCode),
+        context: { toolName: name, args: validatedArgs },
+        timestamp: new Date().toISOString(),
+      };
+
+      logger.error(`Tool ${name} execution failed: ${errorMessage}`);
+      this.updateMetrics(name, executionTime, false, error);
+
+      return createToolFailure<T>(error.code, error.message, {
+        recoveryHint: error.recoveryHint,
+        metadata: { executionTime },
+      });
+    }
+  }
+
+  /**
+   * Infer error code from error object
+   */
+  private inferErrorCode(error: unknown): ErrorCode {
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+
+      if (message.includes('access denied') || message.includes('permission')) {
+        return ErrorCodes.PATH_ACCESS_DENIED;
+      }
+      if (message.includes('not found') || message.includes('enoent')) {
+        return ErrorCodes.PATH_NOT_FOUND;
+      }
+      if (message.includes('timeout')) {
+        return ErrorCodes.TOOL_TIMEOUT;
+      }
+      if (message.includes('validation') || message.includes('invalid')) {
+        return ErrorCodes.TOOL_VALIDATION_ERROR;
+      }
+      if (message.includes('mlx') || message.includes('model')) {
+        return ErrorCodes.MLX_UNAVAILABLE;
+      }
+      if (message.includes('network') || message.includes('econnrefused')) {
+        return ErrorCodes.NETWORK_ERROR;
+      }
+    }
+
+    return ErrorCodes.TOOL_EXECUTION_ERROR;
+  }
+
+  /**
+   * Execute a tool and throw on error (for backwards compatibility)
+   */
+  async executeToolOrThrow<T = unknown>(name: string, args: unknown): Promise<T> {
+    const result = await this.executeTool<T>(name, args);
+
+    if (isToolError(result)) {
+      throw new ToolRegistryError(result.error!.code as ErrorCode, result.error!.message, {
+        recoveryHint: result.error!.recoveryHint,
+      });
+    }
+
+    return result.data!;
   }
 
   getToolStats(): Record<string, number> {
@@ -126,5 +365,102 @@ export class ToolRegistry {
     }
 
     return stats;
+  }
+
+  /**
+   * Get execution metrics for a specific tool
+   */
+  getToolMetrics(name: string): ToolExecutionMetrics | undefined {
+    return this.metrics.get(name);
+  }
+
+  /**
+   * Get execution metrics for all tools
+   */
+  getAllToolMetrics(): Map<string, ToolExecutionMetrics> {
+    return new Map(this.metrics);
+  }
+
+  /**
+   * Get aggregated metrics across all tools
+   */
+  getAggregatedMetrics(): {
+    totalCalls: number;
+    totalSuccesses: number;
+    totalFailures: number;
+    successRate: number;
+    averageExecutionTime: number;
+    toolsWithErrors: string[];
+  } {
+    let totalCalls = 0;
+    let totalSuccesses = 0;
+    let totalFailures = 0;
+    let totalExecutionTime = 0;
+    const toolsWithErrors: string[] = [];
+
+    for (const [toolName, metrics] of this.metrics) {
+      totalCalls += metrics.totalCalls;
+      totalSuccesses += metrics.successCount;
+      totalFailures += metrics.failureCount;
+      totalExecutionTime += metrics.totalExecutionTime;
+
+      if (metrics.lastError) {
+        toolsWithErrors.push(toolName);
+      }
+    }
+
+    return {
+      totalCalls,
+      totalSuccesses,
+      totalFailures,
+      successRate: totalCalls > 0 ? totalSuccesses / totalCalls : 1,
+      averageExecutionTime: totalCalls > 0 ? totalExecutionTime / totalCalls : 0,
+      toolsWithErrors,
+    };
+  }
+
+  /**
+   * Reset metrics for a specific tool or all tools
+   */
+  resetMetrics(name?: string): void {
+    if (name) {
+      this.metrics.delete(name);
+      logger.debug(`Reset metrics for tool: ${name}`);
+    } else {
+      this.metrics.clear();
+      logger.debug('Reset all tool metrics');
+    }
+  }
+
+  /**
+   * Check if the registry is healthy (no persistent errors)
+   */
+  isHealthy(): { healthy: boolean; issues: string[] } {
+    const issues: string[] = [];
+    const aggregated = this.getAggregatedMetrics();
+
+    // Check if any tool has a high failure rate
+    for (const [toolName, metrics] of this.metrics) {
+      if (metrics.totalCalls > 5) {
+        const failureRate = metrics.failureCount / metrics.totalCalls;
+        if (failureRate > 0.5) {
+          issues.push(
+            `Tool ${toolName} has high failure rate: ${(failureRate * 100).toFixed(1)}%`
+          );
+        }
+      }
+    }
+
+    // Check overall failure rate
+    if (aggregated.totalCalls > 10 && aggregated.successRate < 0.8) {
+      issues.push(
+        `Overall success rate is low: ${(aggregated.successRate * 100).toFixed(1)}%`
+      );
+    }
+
+    return {
+      healthy: issues.length === 0,
+      issues,
+    };
   }
 }

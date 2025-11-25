@@ -87,7 +87,7 @@ export class Orchestrator {
       // Execute through MLX backend
       const mlxResult = await this.mlxClient.generateCompletion(prompt, {
         temperature: 0.1,
-        max_tokens: tool.category === 'repo-search' || tool.category === 'code-analysis' ? 1024 : 2048,
+        maxTokens: tool.category === 'repo-search' || tool.category === 'code-analysis' ? 1024 : 2048,
       });
 
       // Parse and validate result
@@ -346,11 +346,15 @@ Output requirements:
 
     private async getCodebasePatterns(): Promise<Record<string, unknown>> {
       try {
-        // Reuse the identifyPatterns tool logic
-        return await this.toolRegistry.executeTool('identifyPatterns', {
+        // Reuse the identifyPatterns tool logic with structured result handling
+        const result = await this.toolRegistry.executeTool('identifyPatterns', {
           codebase: process.cwd(),
           patternTypes: ['architectural', 'design']
         });
+        if (!result.success) {
+          throw new Error(result.error?.message ?? 'Unknown error');
+        }
+        return result.data as Record<string, unknown>;
       } catch (e) {
         logger.warn('Failed to get codebase patterns', e);
         return {
@@ -366,10 +370,14 @@ Output requirements:
       // Reuse mapArchitecture tool if available, or fallback to basic structure
       // Since mapArchitecture wasn't explicitly in the "missing" list, we assume it exists or we use a placeholder that tries to call it.
       // If it fails (e.g. not implemented), we return a basic map.
-      return await this.toolRegistry.executeTool('mapArchitecture', {
+      const result = await this.toolRegistry.executeTool('mapArchitecture', {
         target: process.cwd(),
         depth: 'high'
       });
+      if (!result.success) {
+        throw new Error(result.error?.message ?? 'Unknown error');
+      }
+      return result.data as Record<string, unknown>;
       } catch (e) {
         // Fallback: return structure as a proxy for architecture
         return {
@@ -383,10 +391,14 @@ Output requirements:
 
   private async getDependencyGraph(): Promise<Record<string, unknown>> {
     try {
-      return await this.toolRegistry.executeTool('buildGraph', {
+      const result = await this.toolRegistry.executeTool('buildGraph', {
         path: process.cwd(),
         depth: 2
       });
+      if (!result.success) {
+        throw new Error(result.error?.message ?? 'Unknown error');
+      }
+      return result.data as Record<string, unknown>;
       } catch (e) {
         return {
           error: 'Failed to build dependency graph',

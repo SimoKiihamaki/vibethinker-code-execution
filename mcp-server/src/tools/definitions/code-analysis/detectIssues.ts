@@ -2,7 +2,13 @@ import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import { ToolDefinition } from '../../types.js';
-import { validatePath, logger } from '../../utils.js';
+import {
+    validatePath,
+    logger,
+    ErrorCodes,
+    createToolSuccess,
+    createToolFailure,
+} from '../../utils.js';
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build']);
 
@@ -43,6 +49,13 @@ export const detectIssues: ToolDefinition = {
     name: 'detectIssues',
     description: 'Detect potential issues, bugs, and code smells',
     category: 'code-analysis',
+    version: '1.1.0',
+    capabilities: ['read-files', 'ast-parsing', 'pattern-matching'],
+    resourceHints: {
+        estimatedMemoryMB: 60,
+        estimatedTimeMs: 5000,
+        cpuIntensive: true,
+    },
     inputSchema: z.object({
         target: z.string().describe('File or directory to analyze'),
         issueTypes: z.array(z.enum(['bugs', 'code-smells', 'security', 'performance'])).default(['bugs', 'code-smells']),

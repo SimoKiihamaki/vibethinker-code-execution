@@ -1,7 +1,14 @@
 import { spawn } from 'child_process';
 import { z } from 'zod';
 import { ToolDefinition } from '../../types.js';
-import { validatePath } from '../../utils.js';
+import {
+    validatePath,
+    logger,
+    ErrorCodes,
+    createToolSuccess,
+    createToolFailure,
+    withErrorHandling,
+} from '../../utils.js';
 
 type SnippetLine = {
     type: 'context' | 'match';
@@ -211,6 +218,13 @@ export const searchByQuery: ToolDefinition = {
     name: 'searchByQuery',
     description: 'Search repository by natural language query using ripgrep and semantic understanding',
     category: 'repo-search',
+    version: '1.1.0',
+    capabilities: ['search-files', 'pattern-matching'],
+    resourceHints: {
+        estimatedMemoryMB: 30,
+        estimatedTimeMs: 3000,
+        cpuIntensive: false,
+    },
     inputSchema: z.object({
         query: z.string().describe('Natural language search query'),
         fileTypes: z.array(z.string()).optional().describe('File extensions to search (e.g., [".ts", ".tsx"])'),
@@ -219,12 +233,17 @@ export const searchByQuery: ToolDefinition = {
     }),
     handler: async (args) => {
         const query = String(args.query ?? '').trim();
-        if (!query) return { summary: 'Empty query provided', results: [] };
+        if (!query) {
+            logger.warn('searchByQuery called with empty query');
+            return { summary: 'Empty query provided', results: [] };
+        }
 
         const root = await validatePath(process.cwd());
         const types = Array.isArray(args.fileTypes) && args.fileTypes.length ? args.fileTypes : ['.ts', '.tsx', '.js', '.jsx'];
         const max = typeof args.maxResults === 'number' ? args.maxResults : 20;
         const ctx = typeof args.contextLines === 'number' ? args.contextLines : 3;
+
+        logger.debug(`Searching for "${query}" in ${root} with types: ${types.join(', ')}`);
 
         try {
             const results = await runRipgrepSearch({
@@ -235,14 +254,21 @@ export const searchByQuery: ToolDefinition = {
                 contextLines: ctx,
             });
 
+            logger.info(`Search completed: found ${results.length} matches for "${query}"`);
             return { summary: `Found ${results.length} matches`, results };
         } catch (error) {
-            return { summary: 'Search failed (ripgrep error)', results: [], error: error instanceof Error ? error.message : String(error) };
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error(`Search failed for "${query}": ${errorMessage}`);
+            return {
+                summary: 'Search failed (ripgrep error)',
+                results: [],
+                error: errorMessage
+            };
         }
     },
     tags: ['search', 'ripgrep', 'semantic'],
     complexity: 'moderate',
     externalDependencies: ['ripgrep'],
     npmDependencies: [],
-    internalDependencies: [],
+    internalDependencies: ['../../utils.js:validatePath', '../../utils.js:logger'],
 };

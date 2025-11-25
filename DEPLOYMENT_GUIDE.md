@@ -127,11 +127,40 @@ Examples:
 When building new tools:
 ```bash
 cd mcp-server
-npm install
-npm run build
-npm start    # waits for stdio connections
+pnpm install
+pnpm run build
+pnpm start    # waits for stdio connections
 ```
-Run `npm test` in the repo root to execute `vitest` + integration tests in `tests/integration/system.test.js`.
+
+### Running Tests
+
+The MCP server includes **239 comprehensive tests** covering tools, utilities, and integration scenarios:
+
+```bash
+cd mcp-server
+
+# Run all tests
+pnpm test
+
+# Run with coverage report
+pnpm test -- --coverage
+
+# Run specific test suites
+pnpm vitest run tests/tools/registry.test.ts        # Registry & error handling (41 tests)
+pnpm vitest run tests/tools/code-analysis/          # Code analysis tools (88 tests)
+pnpm vitest run tests/tools/repo-search/            # Search tools (63 tests)
+pnpm vitest run tests/integration/                  # Hook lifecycle tests (17 tests)
+
+# Type checking
+pnpm tsc --noEmit
+```
+
+### Adding New Tools
+
+1. Create tool file in `src/tools/definitions/<category>/`
+2. Export from the category's `index.ts`
+3. Write tests in `tests/tools/<category>/<toolName>.test.ts`
+4. Run tests to verify: `pnpm vitest run tests/tools/<category>/`
 
 ## 🚨 Troubleshooting
 

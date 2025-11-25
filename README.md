@@ -329,6 +329,32 @@ Update the file inside `~/qwen3-claude-system/mlx-servers/` after installation a
 
 ## 🛠️ Development
 
+### Test Coverage
+
+The project maintains comprehensive test coverage with **239 tests** across multiple modules:
+
+```bash
+# Run all tests
+cd mcp-server && pnpm test
+
+# Run with coverage
+pnpm test -- --coverage
+
+# Run specific test files
+pnpm vitest run tests/tools/registry.test.ts
+```
+
+| Test Suite | Tests | Description |
+|------------|-------|-------------|
+| `registry.test.ts` | 41 | Tool registry, error handling, metrics |
+| `searchByQuery.test.ts` | 32 | Ripgrep-based code search |
+| `detectIssues.test.ts` | 32 | Code smell and bug detection |
+| `findPatterns.test.ts` | 34 | Anti-pattern detection |
+| `analyzeImports.test.ts` | 31 | Import analysis, cycle detection |
+| `analyzeFile.test.ts` | 22 | File complexity analysis |
+| `utils.test.ts` | 30 | Utility functions and error handling |
+| `hook-lifecycle.test.ts` | 17 | Integration tests for hooks |
+
 ### Adding New Skills
 
 1. Create directory in `skills/`
@@ -346,10 +372,82 @@ Update the file inside `~/qwen3-claude-system/mlx-servers/` after installation a
 
 ### Adding Tools
 
-1. Create tool file in `mcp-server/src/tools/`
-2. Add to tool registry
-3. Update progressive disclosure generator
-4. Test integration
+Tools follow a structured definition pattern with built-in error handling:
+
+```typescript
+import { z } from 'zod';
+import { ToolDefinition } from '../../types.js';
+import { validatePath, logger, ErrorCodes, createToolFailure } from '../../utils.js';
+
+export const myTool: ToolDefinition = {
+  name: 'myTool',
+  description: 'Description of what the tool does',
+  category: 'repo-search',  // or 'code-analysis', 'architectural', 'context-building'
+  version: '1.0.0',
+  capabilities: ['read-files', 'pattern-matching'],
+  resourceHints: {
+    estimatedMemoryMB: 50,
+    estimatedTimeMs: 3000,
+    cpuIntensive: false,
+  },
+  inputSchema: z.object({
+    path: z.string().describe('Path to analyze'),
+    options: z.object({
+      depth: z.number().default(2),
+    }).optional(),
+  }),
+  handler: async (args) => {
+    const validPath = await validatePath(args.path);
+    // Implementation...
+    return { result: 'success', data: analysisResult };
+  },
+  tags: ['search', 'analysis'],
+  complexity: 'moderate',
+  externalDependencies: ['ripgrep'],
+  npmDependencies: [],
+  internalDependencies: ['../../utils.js:validatePath'],
+};
+```
+
+**Steps to add a tool:**
+1. Create tool file in `mcp-server/src/tools/definitions/<category>/`
+2. Export from the category's `index.ts`
+3. The ToolRegistry automatically registers tools on startup
+4. Write unit tests in `tests/tools/<category>/`
+5. Test integration with the MCP server
+
+### ToolRegistry Features
+
+The enhanced `ToolRegistry` provides:
+
+- **Structured Error Handling**: All tool errors include error codes, messages, and recovery hints
+- **Execution Metrics**: Track success/failure rates, execution times, and errors per tool
+- **Health Monitoring**: Check registry health with `registry.isHealthy()`
+- **Type-Safe Results**: `executeTool()` returns `ToolResult<T>` with success/error states
+
+```typescript
+// Execute tool with structured result
+const result = await registry.executeTool('searchByQuery', { query: 'function' });
+
+if (result.success) {
+  console.log(result.data);           // Tool output
+  console.log(result.metadata);       // Execution time, version
+} else {
+  console.log(result.error?.code);    // Error code (e.g., 'TOOL_NOT_FOUND')
+  console.log(result.error?.message); // Human-readable message
+  console.log(result.error?.recoveryHint); // Suggested fix
+}
+
+// Get metrics for monitoring
+const metrics = registry.getToolMetrics('searchByQuery');
+console.log(`Success rate: ${metrics.successCount / metrics.totalCalls}`);
+
+// Health check
+const health = registry.isHealthy();
+if (!health.healthy) {
+  console.log('Issues:', health.issues);
+}
+```
 
 ## 📈 Monitoring
 
