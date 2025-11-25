@@ -1,0 +1,60 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/simo/qwen3-claude-system/hooks/pre-tool-use/context-gatherer.js"
+          },
+          {
+            "type": "command", 
+            "command": "node /Users/simo/qwen3-claude-system/hooks/pre-tool-use/security-validator.js"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/simo/qwen3-claude-system/hooks/post-tool-use/analyze-changes.js"
+          },
+          {
+            "type": "command",
+            "command": "node /Users/simo/qwen3-claude-system/hooks/post-tool-use/update-context.js"
+          },
+          {
+            "type": "command",
+            "command": "node /Users/simo/qwen3-claude-system/hooks/post-tool-use/run-tests.js"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/simo/qwen3-claude-system/hooks/session-start.js"
+          }
+        ]
+      }
+    ]
+  },
+  "mcp": {
+    "server_url": "http://localhost:8090",
+    "model_config": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 32768
+    }
+  },
+  "skills": {
+    "auto_load": true,
+    "skills_path": "/Users/simo/qwen3-claude-system/skills"
+  }
+}

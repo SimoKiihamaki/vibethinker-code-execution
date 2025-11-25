@@ -37,8 +37,8 @@ const detectSingleton = (
     includeViolations: boolean
 ) => {
     const { methods, fields } = classInfo;
-    const hasGetter = methods.some(m => m.name === 'getInstance' && m.isStatic);
-    const hasPrivateInstance = fields.some(f => f.isStatic && f.accessibility === 'private');
+    const hasGetter = methods.some((m: any) => m.name === 'getInstance' && m.isStatic);
+    const hasPrivateInstance = fields.some((f: any) => f.isStatic && f.accessibility === 'private');
 
     if (hasGetter && hasPrivateInstance) {
         patterns.push({ name: 'Singleton', file: filePath, confidence: 'high' });
@@ -60,12 +60,12 @@ const detectFactory = (
 ) => {
     const { methods, name } = classInfo;
     const lowerName = name.toLowerCase();
-    const exposesCreate = methods.some(m => m.name.startsWith('create'));
+    const exposesCreate = methods.some((m: any) => m.name.startsWith('create'));
 
     if (lowerName.includes('factory') || exposesCreate) {
         patterns.push({ name: 'Factory', file: filePath, confidence: exposesCreate ? 'high' : 'medium' });
         if (includeViolations) {
-            const usesNew = methods.some(m => /\bnew\s+[A-Z]/.test(m.text));
+            const usesNew = methods.some((m: any) => /\bnew\s+[A-Z]/.test(m.text));
             if (!usesNew) {
                 violations.push({ name: 'Factory', file: filePath, message: 'Factory does not instantiate objects with "new".' });
             }
@@ -81,8 +81,8 @@ const detectObserver = (
     includeViolations: boolean
 ) => {
     const { methods } = classInfo;
-    const hasSubscribe = methods.some(m => m.name === 'subscribe');
-    const hasNotify = methods.some(m => m.name === 'notify');
+    const hasSubscribe = methods.some((m: any) => m.name === 'subscribe');
+    const hasNotify = methods.some((m: any) => m.name === 'notify');
 
     if (hasSubscribe && hasNotify) {
         patterns.push({ name: 'Observer', file: filePath, confidence: 'medium' });
@@ -104,7 +104,7 @@ const detectController = (
     if (lowerName.endsWith('controller')) {
         patterns.push({ name: 'Controller', file: filePath, confidence: 'high' });
         if (includeViolations) {
-            const hasHandler = methods.some(m => ['handle', 'execute'].includes(m.name));
+            const hasHandler = methods.some((m: any) => ['handle', 'execute'].includes(m.name));
             if (!hasHandler) {
                 violations.push({ name: 'Controller', file: filePath, message: 'Controller lacks a handle/execute method.' });
             }
@@ -124,7 +124,7 @@ const detectService = (
 
     if (lowerName.endsWith('service')) {
         patterns.push({ name: 'Service', file: filePath, confidence: 'high' });
-        const publicMethods = methods.filter(m => m.accessibility !== 'private');
+        const publicMethods = methods.filter((m: any) => m.accessibility !== 'private');
         if (includeViolations && publicMethods.length === 0) {
             violations.push({ name: 'Service', file: filePath, message: 'Service classes should expose at least one public method.' });
         }
@@ -144,7 +144,7 @@ const detectRepository = (
     if (lowerName.endsWith('repository')) {
         patterns.push({ name: 'Repository', file: filePath, confidence: 'high' });
         if (includeViolations) {
-            const hasDataMethods = methods.some(m => ['find', 'save', 'get', 'put'].some(prefix => m.name.startsWith(prefix)));
+            const hasDataMethods = methods.some((m: any) => ['find', 'save', 'get', 'put'].some(prefix => m.name.startsWith(prefix)));
             if (!hasDataMethods) {
                 violations.push({ name: 'Repository', file: filePath, message: 'Repository should expose persistence operations (find/save/etc.).' });
             }

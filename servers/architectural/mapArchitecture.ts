@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Create comprehensive architectural map of the codebase
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const mapArchitectureSchema = z.object({ rootPath: z.string().describe('Root path of the repository'), layers: z.array(z.string()).optional(), includeDependencies: z.boolean().default(true) });
 
-export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> { }
+export interface mapArchitectureInput extends z.infer<typeof mapArchitectureSchema> {}
 
 export interface mapArchitectureResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface mapArchitectureResult {
 export async function mapArchitecture(input: mapArchitectureInput): Promise<mapArchitectureResult> {
   // Validate input
   const validatedInput = mapArchitectureSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
   const prompt = buildmapArchitecturePrompt(validatedInput);
-
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
       data: parsemapArchitectureResult(result, validatedInput),
@@ -116,11 +116,4 @@ function parsemapArchitectureResult(result: string, input: mapArchitectureInput)
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

@@ -94,8 +94,8 @@ The script creates `.claude/claude_settings.json` with:
 {
   "hooks": {
     "PreToolUse": ["context-gatherer", "security-validator"],
-    "PostToolUse": ["analyze-changes"],
-    "SessionStart": ["load-repo-context"]
+    "PostToolUse": ["analyze-changes", "update-context", "run-tests"],
+    "SessionStart": ["session-start"]
   },
   "mcp": {
     "server_url": "http://localhost:8090"

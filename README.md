@@ -47,169 +47,123 @@ A complete implementation of Anthropic's "Code execution with MCP" pattern, inte
 
 ```
 vibethinker-code-execution/
-├── README.md                           # Project overview and setup
-├── package.json                        # Node.js dependencies
-├── tsconfig.json                       # TypeScript configuration
-├── .gitignore                          # Git ignore patterns
-│
-├── models/                             # MLX model storage
-│   └── qwen3-vl-2b-thinking-mlx-8bit/  # Quantized Qwen3-VL-2B-Thinking model
-│
-├── scripts/                            # Setup and deployment
-│   ├── convert_model.py               # Convert to MLX Q4
-│   ├── deploy.sh                      # Full deployment script
-│   ├── health_check.py                # Health monitoring
-│   └── stop.sh                        # Shutdown script
-│
-├── mlx-servers/                       # MLX inference backend
-│   ├── config.json                    # Server configurations
-│   ├── load_balancer.py              # Intelligent load balancer
-│   ├── server_manager.py             # Process management
-│   └── ecosystem.config.js           # PM2 configuration
-│
-├── mcp-server/                        # MCP server (stdio protocol)
-│   ├── package.json
-│   ├── tsconfig.json
+├── README.md                        # Project overview
+├── package.json                     # Root Node.js package
+├── unified-system.sh                # Unified installer/orchestrator
+├── mlx-servers/                     # MLX inference backend
+│   ├── config.json                  # Default MLX/port config
+│   ├── ecosystem.config.cjs         # PM2 process file
+│   ├── enhanced_server_manager.py   # Supervisor & metrics
+│   ├── optimized_load_balancer.py   # HTTP load balancer (port 8090)
+│   ├── optimized_mlx_server.py      # Individual MLX worker
+│   └── logs/
+├── mcp-server/                      # Model Context Protocol server
+│   ├── package.json / tsconfig.json
 │   ├── src/
-│   │   ├── index.ts                  # Server entry point
-│   │   ├── client.ts                 # MCP client wrapper
-│   │   ├── orchestrator.ts          # Job orchestration
-│   │   │
-│   │   ├── tools/                    # Tool execution layer
-│   │   │   ├── ripgrep.ts
-│   │   │   ├── ast-grep.ts
-│   │   │   ├── import-resolver.ts
-│   │   │   ├── file-ops.ts
-│   │   │   └── executor.ts
-│   │   │
-│   │   └── prompts/                  # VibeThinker prompts
-│   │       ├── system-prompts.ts
-│   │       └── tool-contexts.ts
-│   │
-│   └── dist/                         # Compiled output
-│
-├── servers/                           # Progressive disclosure API
-│   │                                 # (Generated at runtime for Claude)
-│   ├── repo-search/
-│   │   ├── index.ts
-│   │   ├── searchByQuery.ts
-│   │   ├── findDependencies.ts
-│   │   ├── analyzeImports.ts
-│   │   └── buildGraph.ts
-│   │
-│   ├── code-analysis/
-│   │   ├── index.ts
-│   │   ├── analyzeFile.ts
-│   │   ├── analyzeFunction.ts
-│   │   ├── findPatterns.ts
-│   │   └── detectIssues.ts
-│   │
-│   ├── context-building/
-│   │   ├── index.ts
-│   │   ├── gatherContext.ts
-│   │   ├── summarizeModule.ts
-│   │   └── buildDocumentation.ts
-│   │
-│   └── architectural/
-│       ├── index.ts
-│       ├── synthesizeFindings.ts
-│       ├── mapArchitecture.ts
-│       └── identifyPatterns.ts
-│
-├── hooks/                            # Claude Code hooks
+│   │   ├── index.ts                 # MCP entry point
+│   │   ├── client.ts                # Load balancer client
+│   │   ├── orchestrator.ts          # Tool orchestration
+│   │   └── tools/definitions/…      # Progressive disclosure tools
+│   └── dist/                        # Build output
+├── hooks/
 │   ├── pre-tool-use/
-│   │   ├── context-gatherer.js      # Auto-gather context before edits
-│   │   ├── security-validator.js    # Validate risky operations
-│   │   └── dependency-checker.js    # Check dependencies before changes
-│   │
+│   │   ├── context-gatherer.js
+│   │   └── security-validator.js
 │   ├── post-tool-use/
-│   │   ├── analyze-changes.js       # Analyze impact of changes
-│   │   ├── update-context.js        # Update context cache
-│   │   └── run-tests.js             # Auto-run tests
-│   │
-│   ├── session-start/
-│   │   ├── load-repo-context.js     # Load full repo context
-│   │   └── check-todo.js            # Load TODO items
-│   │
-│   └── stop/
-│       ├── save-session.js          # Persist session state
-│       └── update-memory.js         # Update learned patterns
-│
-├── skills/                           # Claude Code skills
+│   │   ├── analyze-changes.js
+│   │   ├── update-context.js
+│   │   └── run-tests.js
+│   ├── session-start.js
+│   └── session-stop.js
+├── skills/
 │   ├── deep-repo-research/
-│   │   ├── SKILL.md                 # Skill definition
-│   │   ├── research.ts              # Implementation
-│   │   └── resources/
-│   │       └── templates.md
-│   │
-│   ├── architectural-analysis/
 │   │   ├── SKILL.md
-│   │   ├── analyze.ts
-│   │   └── resources/
-│   │       └── patterns.md
-│   │
+│   │   └── index.js
 │   ├── dependency-analysis/
 │   │   ├── SKILL.md
-│   │   ├── analyze-deps.ts
-│   │   └── resources/
-│   │       └── graph-templates.md
-│   │
-│   └── context-aware-editing/
-│       ├── SKILL.md
-│       ├── edit-with-context.ts
-│       └── resources/
-│           └── best-practices.md
-│
-├── workspace/                        # Execution environment workspace
-│   ├── cache/                       # Query result cache
-│   ├── sessions/                    # Session state
-│   └── context/                     # Pre-built context files
-│
-└── config/
-    ├── mcp_config.json              # MCP server configuration
-    ├── claude_settings.json         # Claude Code settings
-    └── hooks_config.json            # Hooks configuration
+│   │   └── index.js
+│   ├── context-aware-editing/
+│   │   ├── SKILL.md
+│   │   └── index.js
+│   └── architectural-analysis.js
+├── scripts/
+│   ├── convert_model.py
+│   ├── health-server.js
+│   └── monitoring-dashboard.js
+├── docs/
+│   ├── README.md and guides
+│   └── …
+├── src/
+│   └── index.ts                     # Root TypeScript entry
+├── tests/
+│   └── integration/system.test.js
+└── requirements.txt                 # Python dependencies
 ```
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 1. Prepare your machine
+- macOS on Apple Silicon (tested on M1/M2/M3)
+- Python 3.10+ with `pip`
+- Node.js 18+ with `npm`
+- `pm2`, `ripgrep`, `fd`, and `ast-grep` available on the PATH (`brew install python@3.11 node@18 ripgrep fd ast-grep && npm install -g pm2`)
 
-- macOS with Apple Silicon (M1/M2/M3)
-- Node.js >= 18.0.0
-- Python >= 3.9
-- Homebrew
-- PM2 (for process management)
-
-### Installation
-
+### 2. Clone and bootstrap
 ```bash
-# Install system dependencies
-brew install ripgrep fd ast-grep
-pip install mlx mlx-lm aiohttp flask
-npm install -g pm2
-
-# Clone and setup
 git clone <repository-url>
 cd vibethinker-code-execution
 npm install
-
-# Deploy full system
-npm run deploy
+chmod +x unified-system.sh
 ```
 
-### Verification
-
+### 3. Install the system bundle
 ```bash
-# Check MLX instances
-pm2 list  # Should show 27 healthy instances
-
-# Health check
-npm run health-check
-
-# Test MCP server
-npm run setup-mcp
+# Copies MLX servers, MCP server, hooks, and skills into ~/qwen3-claude-system
+./unified-system.sh install --install-dir ~/qwen3-claude-system
 ```
+The install command checks requirements, installs Python + Node dependencies, builds `mcp-server`, and generates helper scripts (`setup-env.sh`, `start-system.sh`, `stop-system.sh`).
+
+### 4. Start the backend services
+```bash
+source ~/qwen3-claude-system/setup-env.sh
+~/qwen3-claude-system/start-system.sh   # or run ./unified-system.sh start
+./unified-system.sh status              # verifies MCP/MLX/monitor ports
+```
+This bootstraps the MLX workers (ports 8107+), the optimized load balancer (port 8090), the health monitor (8092), and the MCP server (stdio transport).
+
+### 5. Wire Claude Code to any repository
+Run the `use` command from inside the repo you want Claude Code to edit.
+```bash
+cd /path/to/your/project
+/path/to/vibethinker-code-execution/unified-system.sh use
+```
+`use` (or `setup-hooks`) writes `.claude/claude_settings.json`, symlinks the shared `hooks/` and `skills/` directories from `~/qwen3-claude-system`, seeds `.claude/workspace/`, and ensures the MCP stack is running before Claude Code connects.
+
+### Verification commands
+```bash
+./unified-system.sh health          # end-to-end check (throughput + MLX import)
+npm run health-check                # Python diagnostics in scripts/health_check.py
+npm run setup-mcp                   # Builds/runs just the MCP server via stdio
+curl http://localhost:8090/health   # Load balancer/monitor endpoint
+```
+Once the hooks are in place you can launch Claude Code, open the repo, and issue prompts such as `claude-code "skill: deep-repo-research --focus=security"` or `claude-code "Refactor the request handler without breaking auth"`.
+
+## Unified Management Script
+
+`unified-system.sh` centralizes everything the original shell scripts used to do. Highlighted commands:
+
+| Command | Purpose |
+|---------|---------|
+| `./unified-system.sh install [--install-dir PATH]` | Copy MLX + MCP assets into a portable directory (default `~/qwen3-claude-system`) and install Node/Python deps. |
+| `./unified-system.sh start / stop / restart` | Manage the MLX processes, optimized load balancer (port 8090), MCP server, and monitors. |
+| `./unified-system.sh status` | Performs lightweight HTTP checks against ports 8090–8092 and confirms each MLX worker port responds. |
+| `./unified-system.sh health` | Runs the status checks plus MLX import validation and throughput scoring. |
+| `./unified-system.sh use` | From inside a repo, writes `.claude/claude_settings.json`, symlinks hooks/skills from the install dir, and initializes `.claude/workspace`. |
+| `./unified-system.sh setup-hooks` | Only refresh the Claude config (useful when CI prepares the repo). |
+| `./unified-system.sh deploy` | Generate optimized configs (`mlx_enhanced_config.json`, `optimized_lb_config.json`) before restarting services. |
+| `./unified-system.sh clean / test / uninstall` | Maintenance helpers for logs, integration tests, or removing an install. |
+
+All commands accept `--install-dir`, `--instances`, `--port-base`, and `--target-throughput` overrides, so you can run multiple stacks or downscale for minimal hardware.
 
 ## 🎯 Usage Examples
 
@@ -254,14 +208,16 @@ claude-code "Update the user service without breaking auth"
 
 ## 🔧 Configuration
 
-### MCP Server Configuration
+### MCP / MLX Configuration
+
+`mlx-servers/config.json` is the canonical place to adjust model parameters, load balancer tuning, and monitoring behavior. The default file ships with:
 
 ```json
 {
   "mlx_servers": {
     "instances": 27,
     "base_port": 8107,
-    "model_path": "./models/qwen3-vl-2b-thinking-mlx-8bit",
+    "model_path": "lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit",
     "quantization": "8bit",
     "max_tokens": 32768,
     "temperature": 1.0,
@@ -269,30 +225,37 @@ claude-code "Update the user service without breaking auth"
     "top_k": 20,
     "repetition_penalty": 1.0,
     "presence_penalty": 1.5,
-    "greedy": false,
-    "out_seq_length": 32768
+    "gpu_memory_fraction": 0.85,
+    "batch_size": 6
   },
-  "progressive_disclosure": {
-    "max_tools_per_request": 10,
-    "cache_ttl": 3600,
-    "auto_discovery": true
+  "load_balancer": {
+    "algorithm": "least_connections",
+    "health_check_interval": 60,
+    "circuit_breaker": { "failure_threshold": 5, "recovery_timeout": 600000 }
+  },
+  "performance": {
+    "target_tokens_per_second": 55,
+    "request_timeout": 180000,
+    "keep_alive": true,
+    "compression": true
   }
 }
 ```
+Update the file inside `~/qwen3-claude-system/mlx-servers/` after installation and restart via `./unified-system.sh restart`.
 
 ### Claude Code Settings
+
+`./unified-system.sh use` writes `.claude/claude_settings.json` in the target repo. The generated config looks like this (the `$QWEN3_SYSTEM_DIR` environment variable is set by `setup-env.sh`).
 
 ```json
 {
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|Read",
         "hooks": [
-          {
-            "type": "command",
-            "command": "node hooks/pre-tool-use/context-gatherer.js"
-          }
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/pre-tool-use/context-gatherer.js" },
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/pre-tool-use/security-validator.js" }
         ]
       }
     ],
@@ -300,13 +263,32 @@ claude-code "Update the user service without breaking auth"
       {
         "matcher": "Write|Edit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "node hooks/post-tool-use/analyze-changes.js"
-          }
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/analyze-changes.js" },
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/update-context.js" },
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/run-tests.js" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node $QWEN3_SYSTEM_DIR/hooks/session-start.js" }
         ]
       }
     ]
+  },
+  "skills": {
+    "auto_load": true,
+    "skills_path": "$QWEN3_SYSTEM_DIR/skills"
+  },
+  "mcp": {
+    "transport": "stdio",
+    "server_url": "http://localhost:8090",
+    "model_config": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 32768
+    }
   }
 }
 ```

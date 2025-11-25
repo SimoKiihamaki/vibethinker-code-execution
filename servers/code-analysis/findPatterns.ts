@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Find code patterns, anti-patterns, and best practice violations
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const findPatternsSchema = z.object({ directory: z.string().describe('Directory to search'), patternTypes: z.array(z.enum(['anti-patterns', 'best-practices', 'security', 'performance'])).default(["anti-patterns"]), severity: z.enum(['low', 'medium', 'high']).default("medium") });
 
-export interface findPatternsInput extends z.infer<typeof findPatternsSchema> { }
+export interface findPatternsInput extends z.infer<typeof findPatternsSchema> {}
 
 export interface findPatternsResult {
   success: boolean;
@@ -30,27 +30,27 @@ export interface findPatternsResult {
 export async function findPatterns(input: findPatternsInput): Promise<findPatternsResult> {
   // Validate input
   const validatedInput = findPatternsSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
-  const prompt = buildFindPatternsPrompt(validatedInput);
-
+  const prompt = buildfindPatternsPrompt(validatedInput);
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
-      data: parseFindPatternsResult(result, validatedInput),
+      data: parsefindPatternsResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function findPatterns(input: findPatternsInput): Promise<findPatter
 /**
  * Build context-aware prompt for findPatterns
  */
-function buildFindPatternsPrompt(input: findPatternsInput): string {
+function buildfindPatternsPrompt(input: findPatternsInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure findPatterns results
  */
-function parseFindPatternsResult(result: string, input: findPatternsInput): any {
+function parsefindPatternsResult(result: string, input: findPatternsInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
@@ -116,11 +116,4 @@ function parseFindPatternsResult(result: string, input: findPatternsInput): any 
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

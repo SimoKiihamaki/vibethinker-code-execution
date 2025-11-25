@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Deep analysis of a single file including complexity, patterns, and issues
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const analyzeFileSchema = z.object({ filePath: z.string().describe('Path to the file to analyze'), analysisType: z.enum(['full', 'complexity', 'patterns', 'issues']).default("full"), includeSuggestions: z.boolean().default(true) });
 
-export interface analyzeFileInput extends z.infer<typeof analyzeFileSchema> { }
+export interface analyzeFileInput extends z.infer<typeof analyzeFileSchema> {}
 
 export interface analyzeFileResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface analyzeFileResult {
 export async function analyzeFile(input: analyzeFileInput): Promise<analyzeFileResult> {
   // Validate input
   const validatedInput = analyzeFileSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
   const prompt = buildanalyzeFilePrompt(validatedInput);
-
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
       data: parseanalyzeFileResult(result, validatedInput),
@@ -116,11 +116,4 @@ function parseanalyzeFileResult(result: string, input: analyzeFileInput): any {
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

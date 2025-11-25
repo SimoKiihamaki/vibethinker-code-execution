@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Build comprehensive dependency graph of the repository
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const buildGraphSchema = z.object({ rootPath: z.string().describe('Root path of the repository'), includeTypes: z.array(z.string()).optional(), excludePatterns: z.array(z.string()).optional() });
 
-export interface buildGraphInput extends z.infer<typeof buildGraphSchema> { }
+export interface buildGraphInput extends z.infer<typeof buildGraphSchema> {}
 
 export interface buildGraphResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface buildGraphResult {
 export async function buildGraph(input: buildGraphInput): Promise<buildGraphResult> {
   // Validate input
   const validatedInput = buildGraphSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
   const prompt = buildbuildGraphPrompt(validatedInput);
-
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
       data: parsebuildGraphResult(result, validatedInput),
@@ -116,11 +116,4 @@ function parsebuildGraphResult(result: string, input: buildGraphInput): any {
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

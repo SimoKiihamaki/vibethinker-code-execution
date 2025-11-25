@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Create concise summary of module functionality and purpose
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const summarizeModuleSchema = z.object({ modulePath: z.string().describe('Path to the module to summarize'), summaryType: z.enum(['brief', 'detailed', 'technical']).default("detailed"), includeDependencies: z.boolean().default(true) });
 
-export interface summarizeModuleInput extends z.infer<typeof summarizeModuleSchema> { }
+export interface summarizeModuleInput extends z.infer<typeof summarizeModuleSchema> {}
 
 export interface summarizeModuleResult {
   success: boolean;
@@ -30,27 +30,27 @@ export interface summarizeModuleResult {
 export async function summarizeModule(input: summarizeModuleInput): Promise<summarizeModuleResult> {
   // Validate input
   const validatedInput = summarizeModuleSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
-  const prompt = buildSummarizeModulePrompt(validatedInput);
-
+  const prompt = buildsummarizeModulePrompt(validatedInput);
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
-      data: parseSummarizeModuleResult(result, validatedInput),
+      data: parsesummarizeModuleResult(result, validatedInput),
       metadata: {
         executionTime,
         tokensUsed: estimateTokens(prompt + result),
@@ -73,7 +73,7 @@ export async function summarizeModule(input: summarizeModuleInput): Promise<summ
 /**
  * Build context-aware prompt for summarizeModule
  */
-function buildSummarizeModulePrompt(input: summarizeModuleInput): string {
+function buildsummarizeModulePrompt(input: summarizeModuleInput): string {
   return `You are VibeThinker, an expert code analysis AI.
 
 Identity: VibeThinker
@@ -103,7 +103,7 @@ Output requirements:
 /**
  * Parse and structure summarizeModule results
  */
-function parseSummarizeModuleResult(result: string, input: summarizeModuleInput): any {
+function parsesummarizeModuleResult(result: string, input: summarizeModuleInput): any {
   try {
     // Try to parse as JSON
     const parsed = JSON.parse(result);
@@ -116,11 +116,4 @@ function parseSummarizeModuleResult(result: string, input: summarizeModuleInput)
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

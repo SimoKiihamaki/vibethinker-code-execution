@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Find all dependencies and imports for a given file or module
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const findDependenciesSchema = z.object({ filePath: z.string().describe('Path to the file to analyze'), depth: z.number().int().default(2), includeExternal: z.boolean().default(false) });
 
-export interface findDependenciesInput extends z.infer<typeof findDependenciesSchema> { }
+export interface findDependenciesInput extends z.infer<typeof findDependenciesSchema> {}
 
 export interface findDependenciesResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface findDependenciesResult {
 export async function findDependencies(input: findDependenciesInput): Promise<findDependenciesResult> {
   // Validate input
   const validatedInput = findDependenciesSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
   const prompt = buildfindDependenciesPrompt(validatedInput);
-
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
       data: parsefindDependenciesResult(result, validatedInput),
@@ -116,11 +116,4 @@ function parsefindDependenciesResult(result: string, input: findDependenciesInpu
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

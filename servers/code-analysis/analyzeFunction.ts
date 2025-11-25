@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getMLXClient } from '../shared/utils.js';
+import { estimateTokens, getMLXClient } from '../shared/utils.js';
 
 /**
  * Analyze specific function or method for complexity and best practices
@@ -11,7 +11,7 @@ import { getMLXClient } from '../shared/utils.js';
 
 const analyzeFunctionSchema = z.object({ filePath: z.string().describe('File containing the function'), functionName: z.string().describe('Name of the function to analyze') });
 
-export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> { }
+export interface analyzeFunctionInput extends z.infer<typeof analyzeFunctionSchema> {}
 
 export interface analyzeFunctionResult {
   success: boolean;
@@ -30,24 +30,24 @@ export interface analyzeFunctionResult {
 export async function analyzeFunction(input: analyzeFunctionInput): Promise<analyzeFunctionResult> {
   // Validate input
   const validatedInput = analyzeFunctionSchema.parse(input);
-
+  
   // Get MLX client instance
   const mlxClient = await getMLXClient();
-
+  
   // Build context-aware prompt
   const prompt = buildanalyzeFunctionPrompt(validatedInput);
-
+  
   // Execute through MLX backend
   const startTime = Date.now();
-
+  
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
       max_tokens: 4096,
     });
-
+    
     const executionTime = Date.now() - startTime;
-
+    
     return {
       success: true,
       data: parseanalyzeFunctionResult(result, validatedInput),
@@ -116,11 +116,4 @@ function parseanalyzeFunctionResult(result: string, input: analyzeFunctionInput)
       timestamp: Date.now(),
     };
   }
-}
-
-/**
- * Estimate token count for text
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

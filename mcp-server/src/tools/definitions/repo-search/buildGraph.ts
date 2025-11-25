@@ -17,7 +17,7 @@ export const buildGraph: ToolDefinition = {
         const root = await validatePath(String(args.rootPath || process.cwd()));
         const types = Array.isArray(args.includeTypes) && args.includeTypes.length ? args.includeTypes : ['.ts', '.tsx', '.js', '.jsx'];
         const excludes = Array.isArray(args.excludePatterns) ? args.excludePatterns : ['node_modules', '.git', 'dist', 'build'];
-        const excludeSet = new Set(excludes.map(pattern => pattern.trim()).filter(Boolean));
+        const excludeSet = new Set(excludes.map((pattern: string) => pattern.trim()).filter(Boolean));
         const files: string[] = [];
         async function walk(dir: string) {
             const entries = await fs.readdir(dir, { withFileTypes: true });

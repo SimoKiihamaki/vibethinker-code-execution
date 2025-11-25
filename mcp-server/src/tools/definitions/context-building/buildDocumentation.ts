@@ -43,7 +43,7 @@ export const buildDocumentation: ToolDefinition = {
                         sections.push('');
 
                         if (includeExamples) {
-                            const firstExport = exports[0].split(/\s+/).pop();
+                            const firstExport = exports[0]?.split(/\s+/).pop() || '';
                             if (firstExport) {
                                 const relativeImport = path.relative(process.cwd(), target);
                                 examples.push(`import { ${firstExport} } from '${relativeImport}';\n${firstExport}(/* params */);`);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import fs from 'fs/promises';
+import { Dirent } from 'fs';
 import path from 'path';
 import { ToolDefinition } from '../../types.js';
 import { SOURCE_EXTENSIONS, getRepositoryRealPath, isPathWithinRepo, resolveImportPath, validatePath } from '../../utils.js';
@@ -27,7 +28,7 @@ const collectDependencies = async (moduleRoot: string): Promise<string[]> => {
     }
 
     const walk = async (target: string) => {
-        let entries: fs.Dirent[];
+        let entries: Dirent[];
         try {
             entries = await fs.readdir(target, { withFileTypes: true });
         } catch {

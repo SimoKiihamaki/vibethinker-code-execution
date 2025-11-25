@@ -1,206 +1,103 @@
 # 🚀 Qwen3-VL-2B-Thinking System: Quick Start Guide
 
-## ⚡ One-Command Setup
+This guide mirrors what the code actually does today. Follow it to install the MCP/MLX stack and make it available in any repository you open in Claude Code.
+
+## 0. Prerequisites
+
+| Requirement | Notes |
+|-------------|-------|
+| macOS on Apple Silicon | Tested on M1/M2/M3 |
+| Python 3.10+ + `pip` | Used by `mlx-servers` scripts and health checks |
+| Node.js 18+ + `npm` | Builds/runs the MCP server and hooks |
+| CLI tools | `pm2`, `ripgrep`, `fd`, `ast-grep` (install via `brew install python@3.11 node@18 ripgrep fd ast-grep && npm install -g pm2`) |
+
+## 1. Install the system bundle
 
 ```bash
-# Install the system (one-time)
-./install-system.sh
+git clone <repository-url>
+cd vibethinker-code-execution
+npm install
+chmod +x unified-system.sh
+./unified-system.sh install --install-dir ~/qwen3-claude-system
+```
 
-# Start the system
-~/qwen3-claude-system/start-system.sh
+What the installer does:
+- Copies `mlx-servers/`, `mcp-server/`, `hooks/`, `skills/`, and helper scripts into `~/qwen3-claude-system`
+- Installs Python + Node dependencies (`mlx`, `mlx-lm`, `pm2`, etc.)
+- Builds the TypeScript MCP server so `dist/index.js` is ready for Claude Code
+- Generates `setup-env.sh`, `start-system.sh`, and `stop-system.sh` in the install directory
 
-# Use in any repository
+## 2. Start the backend services
+
+```bash
+source ~/qwen3-claude-system/setup-env.sh
+~/qwen3-claude-system/start-system.sh   # or ./unified-system.sh start
+./unified-system.sh status              # health snapshot
+```
+
+This launches:
+- Optimized load balancer (`mlx-servers/optimized_load_balancer.py`, port 8090)
+- Enhanced MLX server manager + workers (ports 8107+ by default)
+- MCP server (`mcp-server/dist/index.js`, stdio transport)
+- Health monitor + dashboard (`scripts/health-server.js`, `scripts/monitoring-dashboard.js`)
+
+## 3. Wire Claude Code into any repository
+
+Execute the `use` command from the root of the repository you want to analyze/edit.
+
+```bash
 cd /path/to/your/project
-~/qwen3-claude-system/use-qwen3-system.sh
+/path/to/vibethinker-code-execution/unified-system.sh use
 ```
 
-## 📋 System Requirements
+`use` performs the steps that the docs previously attributed to `use-qwen3-system.sh`:
+- Writes `.claude/claude_settings.json` with the correct PreToolUse, PostToolUse, and SessionStart hook commands pointing at `$QWEN3_SYSTEM_DIR`
+- Symlinks `.claude/hooks` and `.claude/skills` to the shared install so updates propagate automatically
+- Seeds `.claude/workspace/{cache,sessions,context}`
+- Starts the MCP/MLX stack if it was offline
 
-- **macOS**: Apple Silicon recommended (M1/M2/M3)
-- **Python**: 3.10+
-- **Node.js**: 18+
-- **RAM**: 16GB+ (for 27 MLX instances)
-- **Storage**: 10GB+
+Open the repo in Claude Code and issue prompts such as:
 
-## 🎯 Usage Examples
-
-### Basic Repository Analysis
 ```bash
-cd your-project
-~/qwen3-claude-system/use-qwen3-system.sh
-
-# Claude Code now has enhanced capabilities
-claude-code "Analyze this repository's architecture"
-claude-code "What are the main components and how do they interact?"
-```
-
-### Using Skills
-```bash
-# Deep repository research
 claude-code "skill: deep-repo-research --focus=security"
-
-# Architectural analysis
-claude-code "skill: architectural-analysis --focus=microservices"
-
-# Dependency analysis
-claude-code "skill: dependency-analysis --check-circular"
-
-# Context-aware editing
-claude-code "skill: context-aware-editing --file=src/api/users.js"
+claude-code "Refactor the auth middleware without breaking tests"
 ```
 
-### Code Generation with Full Context
-```bash
-# Claude Code automatically:
-# 1. Gathers file context via hooks
-# 2. Uses Qwen3-VL-2B-Thinking for generation
-# 3. Validates output with analysis
-
-claude-code "Add a new API endpoint following existing patterns"
-claude-code "Refactor this component for better performance"
-```
-
-## 🔧 System Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| MCP Server | 8090 | Model Context Protocol |
-| Load Balancer | 8091 | Request distribution |
-| Health Monitor | 8092 | System health checks |
-| MLX Instances | 8080+ | Qwen3 model instances |
-
-## 📊 Management Commands
+## 4. Useful follow-up commands
 
 ```bash
-# Check service status
-pm2 list
-
-# View logs
-pm2 logs mlx-server
-pm2 logs mcp-server
-
-# System health check
-curl http://localhost:8090/health
-
-# Stop all services
-pm2 stop all
-
-# Restart services
-pm2 restart all
+./unified-system.sh health          # Throughput + MLX import validation
+npm run health-check                # Python diagnostics (scripts/health_check.py)
+npm run setup-mcp                   # Build + run only the MCP server
+curl http://localhost:8090/health   # Load balancer/monitor endpoint
+pm2 logs                            # Tail MLX + MCP logs once started by the helper scripts
 ```
 
-## 🎛️ Configuration
+## 5. Manual MCP development loop
 
-### Environment Variables
+When iterating on new tools you can run the MCP server in isolation.
+
 ```bash
-# Model settings
-export TEMPERATURE=1.0
-export TOP_P=0.95
-export TOP_K=20
-
-# System settings
-export MLX_INSTANCES=27
-export GPU_MEMORY_FRACTION=0.85
+cd mcp-server
+npm install
+npm run build
+npm start   # waits for stdio connections (Claude Code or tests)
 ```
 
-### Custom Configuration
-```bash
-# Edit model config
-vim ~/qwen3-claude-system/mlx-servers/config.json
+## 6. Customization knobs
 
-# Edit Claude Code settings
-vim .claude/claude_settings.json
-```
+- `~/qwen3-claude-system/mlx-servers/config.json` – change `instances`, `base_port`, or generation parameters
+- `./unified-system.sh start --instances 12 --port-base 9000` – override runtime options without editing JSON
+- `./unified-system.sh setup-hooks` – refresh the `.claude` configuration without touching workspace data
+- `./unified-system.sh deploy` – generate `mlx_enhanced_config.json` and `optimized_lb_config.json` with new throughput targets, then restart services
 
-## 🔍 Available Skills
+## 7. Troubleshooting cheatsheet
 
-| Skill | Description | Usage |
-|-------|-------------|-------|
-| `deep-repo-research` | Comprehensive repository analysis | `skill: deep-repo-research --focus=topic` |
-| `architectural-analysis` | System architecture review | `skill: architectural-analysis --focus=patterns` |
-| `dependency-analysis` | Dependency mapping and analysis | `skill: dependency-analysis --check-circular` |
-| `context-aware-editing` | Smart code editing with context | `skill: context-aware-editing --file=path` |
+| Symptom | Fix |
+|---------|-----|
+| Claude Code says "no MCP server" | Confirm `./unified-system.sh status` passes, then rerun `./unified-system.sh use` in the repo |
+| Hooks do not run | Inspect `.claude/claude_settings.json` and ensure the `command` paths point at `$QWEN3_SYSTEM_DIR`; rerun `use` |
+| Ports are already in use | Pass alternative ports: `./unified-system.sh start --port-base 9000 --instances 8` |
+| System feels slow | Lower `mlx_servers.instances` in `mlx-servers/config.json`, or run `./unified-system.sh start --instances 12 --target-throughput 600` |
 
-## 🔗 Available Hooks
-
-| Hook | Trigger | Function |
-|------|---------|----------|
-| `context-gatherer` | PreToolUse | Gathers file context before operations |
-| `security-validator` | PreToolUse | Checks for security risks |
-| `dependency-checker` | PreToolUse | Validates dependencies |
-| `analyze-changes` | PostToolUse | Analyzes impact of changes |
-| `update-context` | PostToolUse | Updates context cache |
-| `load-repo-context` | SessionStart | Loads repository information |
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### System not starting
-```bash
-# Check system requirements
-./install-system.sh --check
-
-# Check logs
-pm2 logs
-
-# Manual restart
-pm2 restart all
-```
-
-#### Model loading issues
-```bash
-# Test MLX installation
-python -c "import mlx; print('MLX OK')"
-
-# Test MLX-LM
-python -c "import mlx_lm; print('MLX-LM OK')"
-
-# Reinstall if needed
-pip uninstall mlx mlx-lm
-pip install mlx mlx-lm
-```
-
-#### Claude Code not connecting
-```bash
-# Check MCP server
-curl http://localhost:8090/health
-
-# Check configuration
-cat .claude/claude_settings.json
-
-# Re-run setup
-~/qwen3-claude-system/use-qwen3-system.sh
-```
-
-#### Performance issues
-```bash
-# Reduce instance count
-# Edit ~/qwen3-claude-system/mlx-servers/config.json
-# Change "instances" from 27 to 12
-
-# Check GPU usage
-python -c "import mlx; print('GPU devices:', mlx.gpu.device_count())"
-
-# Monitor memory
-pm2 monit
-```
-
-## 📚 Documentation
-
-- **Full Guide**: `DEPLOYMENT_GUIDE.md`
-- **Configuration**: `mlx-servers/config.json`
-- **Skills**: `~/qwen3-claude-system/skills/`
-- **Hooks**: `~/qwen3-claude-system/hooks/`
-
-## 🆘 Support
-
-1. Check system logs: `pm2 logs`
-2. Run health check: `curl http://localhost:8090/health`
-3. Review requirements above
-4. Check this guide for solutions
-5. Create an issue in the repository
-
----
-
-**🎉 Ready to supercharge Claude Code with Qwen3-VL-2B-Thinking!**
+You now have the same workflow described in the code—no hidden scripts required.

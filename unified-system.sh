@@ -359,7 +359,11 @@ create_environment_setup() {
 # System configuration
 export QWEN3_SYSTEM_DIR="$INSTALL_DIR"
 export PATH="\$QWEN3_SYSTEM_DIR:\$PATH"
-export PYTHONPATH="\$QWEN3_SYSTEM_DIR:\$PYTHONPATH"
+if [[ -n "\${PYTHONPATH:-}" ]]; then
+  export PYTHONPATH="\$QWEN3_SYSTEM_DIR:\$PYTHONPATH"
+else
+  export PYTHONPATH="\$QWEN3_SYSTEM_DIR"
+fi
 
 # Model configuration
 export MODEL_PATH="lmstudio-community/Qwen3-VL-2B-Thinking-MLX-8bit"
@@ -419,6 +423,14 @@ setup_claude_hooks() {
           {
             "type": "command",
             "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/analyze-changes.js"
+          },
+          {
+            "type": "command",
+            "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/update-context.js"
+          },
+          {
+            "type": "command",
+            "command": "node $QWEN3_SYSTEM_DIR/hooks/post-tool-use/run-tests.js"
           }
         ]
       }
@@ -428,7 +440,7 @@ setup_claude_hooks() {
         "hooks": [
           {
             "type": "command",
-            "command": "node $QWEN3_SYSTEM_DIR/hooks/session-start/load-repo-context.js"
+            "command": "node $QWEN3_SYSTEM_DIR/hooks/session-start.js"
           }
         ]
       }

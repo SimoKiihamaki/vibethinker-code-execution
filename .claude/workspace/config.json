@@ -1,0 +1,12 @@
+{
+  "repo_path": "/Users/simo/Documents/trae_projects/vibethinker-code-execution",
+  "cache_enabled": true,
+  "session_persistence": true,
+  "auto_context_building": true,
+  "skills_available": [
+    "deep-repo-research",
+    "architectural-analysis", 
+    "dependency-analysis",
+    "context-aware-editing"
+  ]
+}
