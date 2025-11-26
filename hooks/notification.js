@@ -282,13 +282,20 @@ async function logNotification(notification) {
  * Sanitize string for safe display in notifications
  * Uses a whitelist approach to only allow safe characters
  * This prevents shell injection and AppleScript injection attacks
+ *
+ * Uses Unicode-aware regex to support international characters:
+ * - \p{L} matches any Unicode letter (supports non-English languages)
+ * - \p{N} matches any Unicode number
+ * - \s matches whitespace
+ * - Safe punctuation: . , ! ? -
  */
 function sanitizeNotificationString(str, maxLength = 200) {
   if (typeof str !== 'string') return '';
-  // Whitelist approach: allow only letters, numbers, whitespace, and safe punctuation
+  // Whitelist approach: allow all Unicode letters, numbers, whitespace, and safe punctuation
   // This is more secure than blacklisting specific dangerous characters
+  // Uses Unicode property escapes for international language support
   return str
-    .replace(/[^a-zA-Z0-9\s.,!?-]/g, '') // Remove all but safe characters
+    .replace(/[^\p{L}\p{N}\s.,!?-]/gu, '') // Remove all but safe characters (Unicode-aware)
     .replace(/\s+/g, ' ') // Normalize multiple whitespace to single space
     .trim()
     .slice(0, maxLength);
