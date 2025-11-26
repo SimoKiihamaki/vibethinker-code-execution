@@ -56,9 +56,48 @@ const SEVERITY_LEVELS = {
   critical: 4,
 };
 
-// Rate limiting state
-let notificationCount = 0;
-let lastResetTime = Date.now();
+// Rate limit state file path
+const RATE_LIMIT_STATE_FILE = path.join(NOTIFICATIONS_DIR, '.rate-limit-state.json');
+
+/**
+ * Check rate limits using file-based persistence
+ * This persists across hook invocations since each invocation is a new process
+ */
+async function checkRateLimit() {
+  const now = Date.now();
+  const windowMs = 60000; // 1 minute
+
+  try {
+    // Ensure directory exists
+    await fs.mkdir(NOTIFICATIONS_DIR, { recursive: true });
+
+    // Try to read existing state
+    let state = { count: 0, lastResetTime: now };
+    try {
+      const stateData = await fs.readFile(RATE_LIMIT_STATE_FILE, 'utf8');
+      state = JSON.parse(stateData);
+    } catch {
+      // File doesn't exist or is invalid, use defaults
+    }
+
+    // Reset counter if window has passed
+    if (now - state.lastResetTime > windowMs) {
+      state.count = 0;
+      state.lastResetTime = now;
+    }
+
+    state.count++;
+
+    // Save updated state
+    await fs.writeFile(RATE_LIMIT_STATE_FILE, JSON.stringify(state));
+
+    return state.count <= NOTIFICATION_SETTINGS.maxPerMinute;
+  } catch (error) {
+    // On any error, allow the notification (fail open)
+    console.error(`Rate limit check failed: ${error.message}`);
+    return true;
+  }
+}
 
 /**
  * Main hook function
@@ -98,7 +137,7 @@ async function main() {
     }
 
     // Check rate limits
-    if (!checkRateLimit()) {
+    if (!(await checkRateLimit())) {
       outputDecision('continue', `Notification rate-limited`, {
         context: { rateLimited: true, type, title },
       });
@@ -154,23 +193,6 @@ function shouldShowNotification(type) {
   return notificationLevel >= minLevel;
 }
 
-/**
- * Check rate limits
- */
-function checkRateLimit() {
-  const now = Date.now();
-  const windowMs = 60000; // 1 minute
-
-  // Reset counter if window has passed
-  if (now - lastResetTime > windowMs) {
-    notificationCount = 0;
-    lastResetTime = now;
-  }
-
-  notificationCount++;
-
-  return notificationCount <= NOTIFICATION_SETTINGS.maxPerMinute;
-}
 
 /**
  * Format notification message for display
@@ -243,32 +265,46 @@ async function logNotification(notification) {
 }
 
 /**
+ * Sanitize string for safe display in notifications
+ * Removes/escapes dangerous characters and limits length
+ */
+function sanitizeNotificationString(str, maxLength = 200) {
+  if (typeof str !== 'string') return '';
+  // Remove control characters, backticks, and shell metacharacters
+  return str
+    .replace(/[\x00-\x1f\x7f]/g, '') // Remove control characters
+    .replace(/[`$()]/g, '') // Remove shell metacharacters
+    .slice(0, maxLength);
+}
+
+/**
  * Send desktop notification (cross-platform)
+ * Uses execFile/spawn with argument arrays to prevent shell injection
  */
 async function sendDesktopNotification(type, title, message) {
   try {
     const platform = os.platform();
+    const { execFile } = await import('child_process');
+    const { promisify } = await import('util');
+    const execFileAsync = promisify(execFile);
+
+    // Sanitize inputs to prevent injection
+    const safeTitle = sanitizeNotificationString(title);
+    const safeMessage = sanitizeNotificationString(message);
 
     if (platform === 'darwin') {
-      // macOS - use osascript
-      const { exec } = await import('child_process');
-      const { promisify } = await import('util');
-      const execAsync = promisify(exec);
-
-      const escapedTitle = title.replace(/"/g, '\\"');
-      const escapedMessage = message.replace(/"/g, '\\"');
-
-      await execAsync(
-        `osascript -e 'display notification "${escapedMessage}" with title "Claude Code" subtitle "${escapedTitle}"'`
-      );
+      // macOS - use osascript with proper argument passing
+      // The -e argument contains the AppleScript, with variables passed safely
+      const script = `display notification "${safeMessage}" with title "Claude Code" subtitle "${safeTitle}"`;
+      await execFileAsync('osascript', ['-e', script]);
     } else if (platform === 'linux') {
-      // Linux - use notify-send
-      const { exec } = await import('child_process');
-      const { promisify } = await import('util');
-      const execAsync = promisify(exec);
-
+      // Linux - use notify-send with argument array (no shell interpolation)
       const urgency = type === 'error' || type === 'critical' ? 'critical' : 'normal';
-      await execAsync(`notify-send -u ${urgency} "Claude Code: ${title}" "${message}"`);
+      await execFileAsync('notify-send', [
+        '-u', urgency,
+        `Claude Code: ${safeTitle}`,
+        safeMessage
+      ]);
     }
     // Windows - would need different approach (toast notifications)
 
@@ -278,11 +314,20 @@ async function sendDesktopNotification(type, title, message) {
 }
 
 /**
- * Read all data from stdin
+ * Read all data from stdin with proper timeout handling
  */
 function readStdin() {
   return new Promise((resolve, reject) => {
     let data = '';
+    let settled = false;
+    let timeoutId;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
 
     process.stdin.setEncoding('utf8');
 
@@ -291,16 +336,25 @@ function readStdin() {
     });
 
     process.stdin.on('end', () => {
-      resolve(data);
+      if (!settled) {
+        settled = true;
+        cleanup();
+        resolve(data);
+      }
     });
 
     process.stdin.on('error', (error) => {
-      reject(error);
+      if (!settled) {
+        settled = true;
+        cleanup();
+        reject(error);
+      }
     });
 
     // Timeout after 5 seconds
-    setTimeout(() => {
-      if (!data) {
+    timeoutId = setTimeout(() => {
+      if (!settled && !data) {
+        settled = true;
         reject(new Error('Stdin read timeout'));
       }
     }, 5000);

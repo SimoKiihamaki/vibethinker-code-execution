@@ -6,17 +6,17 @@
 import { vi } from 'vitest';
 
 /**
- * Hook event types
+ * Hook event types (matching actual Claude Code hook events)
  */
 export type HookEvent =
   | 'SessionStart'
-  | 'SessionStop'
   | 'PreToolUse'
   | 'PostToolUse'
   | 'Notification'
   | 'Stop'
-  | 'PreToolResponse'
-  | 'PostToolResponse';
+  | 'UserPromptSubmit'
+  | 'SubagentStop'
+  | 'PreCompact';
 
 /**
  * Hook decision types
@@ -70,13 +70,6 @@ export interface SessionStartPayload {
   working_directory: string;
 }
 
-/**
- * SessionStop payload
- */
-export interface SessionStopPayload {
-  session_id: string;
-  duration_ms: number;
-}
 
 /**
  * Hook test context
@@ -225,23 +218,6 @@ export function createSessionStartContext(
   );
 }
 
-/**
- * Create a SessionStop hook test context
- */
-export function createSessionStopContext(
-  durationMs: number = 60000
-): HookTestContext<SessionStopPayload> {
-  return createHookTestContext<SessionStopPayload>(
-    'SessionStop',
-    {
-      session_id: `session-${Date.now()}`,
-      duration_ms: durationMs,
-    },
-    {
-      expectedDecision: 'continue',
-    }
-  );
-}
 
 /**
  * Validate hook output against JSON decision protocol

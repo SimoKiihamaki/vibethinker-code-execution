@@ -227,10 +227,12 @@ export function formatMCPError(error: StructuredError): {
 }
 
 /**
- * Type guard to check if a result is an error
+ * Type guard to check if a result is an error with guaranteed error object
  */
-export function isToolError<T>(result: ToolResult<T>): result is ToolResult<T> & { success: false } {
-  return !result.success;
+export function isToolError<T>(
+  result: ToolResult<T>
+): result is ToolResult<T> & { success: false; error: NonNullable<ToolResult<T>['error']> } {
+  return !result.success && result.error !== undefined;
 }
 
 /**

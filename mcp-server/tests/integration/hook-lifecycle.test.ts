@@ -7,9 +7,8 @@
  * 3. PostToolUse hook metrics/logging
  * 4. Notification hook alerts
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { spawn, ChildProcess } from 'child_process';
-import { EventEmitter } from 'events';
+import { describe, it, expect } from 'vitest';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 

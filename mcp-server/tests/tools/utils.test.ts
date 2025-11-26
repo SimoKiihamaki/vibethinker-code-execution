@@ -3,7 +3,7 @@
  *
  * Tests for error utilities and helper functions
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   ErrorCodes,
   createError,

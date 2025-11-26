@@ -3,7 +3,7 @@
  *
  * Tests for the enhanced tool registry with structured error handling and metrics
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
 import { ToolRegistry, ToolRegistryError } from '../../src/tools/registry.js';
 import { ToolDefinition } from '../../src/tools/types.js';

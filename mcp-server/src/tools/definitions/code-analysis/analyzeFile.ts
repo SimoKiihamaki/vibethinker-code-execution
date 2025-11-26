@@ -2,14 +2,7 @@ import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import { ToolDefinition } from '../../types.js';
-import {
-    validatePath,
-    logger,
-    ErrorCodes,
-    createToolSuccess,
-    createToolFailure,
-    withErrorHandling,
-} from '../../utils.js';
+import { validatePath, logger } from '../../utils.js';
 
 export const analyzeFile: ToolDefinition = {
     name: 'analyzeFile',
