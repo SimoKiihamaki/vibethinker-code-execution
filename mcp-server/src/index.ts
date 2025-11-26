@@ -4,30 +4,46 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import winston from 'winston';
 import chalk from 'chalk';
-import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { MLXClient } from './client.js';
 import { Orchestrator } from './orchestrator.js';
 import { ToolRegistry } from './tools/registry.js';
 import { ProgressiveDisclosureGenerator } from './progressive-disclosure.js';
+import { createLogger } from './logging/index.js';
+import { getConfig } from './config/index.js';
 
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.colorize(),
-    winston.format.printf(({ timestamp, level, message }) => {
-      return `${chalk.gray(timestamp)} ${level} ${message}`;
-    })
-  ),
-  transports: [
-    new winston.transports.Console({
-      stderrLevels: ['error', 'warn', 'info', 'debug', 'verbose', 'silly'],
-    }),
-  ],
-});
+const logger = createLogger({ component: 'MCPServer' });
+
+// Type for JSON Schema output
+interface JsonSchemaOutput {
+  definitions?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * Convert a Zod schema to JSON Schema format.
+ *
+ * This wrapper function provides a clear type boundary for the zod-to-json-schema library.
+ * The library's complex generic return types can cause TypeScript's "Type instantiation is
+ * excessively deep" error (TS2589). We use @ts-expect-error to document this known issue
+ * while maintaining some type safety for other usages.
+ *
+ * TODO: Consider alternatives to zod-to-json-schema that don't suffer from deep type instantiation:
+ * - https://github.com/StefanTerdell/zod-to-json-schema/issues (file an issue)
+ * - Alternative: @anatine/zod-openapi or manual JSON Schema generation
+ * - Alternative: Use zod's .describe() with a simpler conversion utility
+ *
+ * @param schema - A Zod schema to convert (typed as unknown to avoid deep inference)
+ * @param name - The name to use for the schema definition
+ * @returns JSON Schema representation of the Zod schema
+ */
+function convertToJsonSchema(schema: unknown, name: string): JsonSchemaOutput {
+  // @ts-expect-error - Deep type instantiation issue in zod-to-json-schema library
+  // The complex generic return types cause TS2589. Using unknown input and JsonSchemaOutput
+  // provides runtime safety while avoiding the compiler issue.
+  return zodToJsonSchema(schema, name) as JsonSchemaOutput;
+}
 
 export class VibeThinkerMCPServer {
   private server: Server;
@@ -35,12 +51,15 @@ export class VibeThinkerMCPServer {
   private orchestrator: Orchestrator;
   private toolRegistry: ToolRegistry;
   private disclosureGenerator: ProgressiveDisclosureGenerator;
+  private config = getConfig();
 
   constructor() {
+    const { server: serverConfig } = this.config;
+
     this.server = new Server(
       {
-        name: 'vibethinker-mcp-server',
-        version: '1.0.0',
+        name: serverConfig.name,
+        version: serverConfig.version,
       },
       {
         capabilities: {
@@ -70,8 +89,8 @@ export class VibeThinkerMCPServer {
 
       return {
         tools: tools.map(tool => {
-          // Convert Zod schema to JSON Schema
-          const jsonSchemaDoc = zodToJsonSchema(tool.inputSchema, tool.name);
+          // Convert Zod schema to JSON Schema using type-safe wrapper
+          const jsonSchemaDoc = convertToJsonSchema(tool.inputSchema, tool.name);
 
           // Extract the actual schema definition (not the $ref document)
           const inputSchema = jsonSchemaDoc.definitions?.[tool.name] || jsonSchemaDoc;
@@ -108,21 +127,36 @@ export class VibeThinkerMCPServer {
 
         logger.debug(`Tool loaded successfully: ${name}, executing through orchestrator`);
 
-        const startTime = Date.now();
         const result = await this.toolRegistry.executeTool(name, args || {});
-        const executionTime = Date.now() - startTime;
 
-        // Handle both direct data return and structured return with metadata
-        const data = result.data || result;
-        const existingMetadata = result.metadata || {};
+        // executeTool now returns a structured ToolResult
+        if (!result.success) {
+          // Handle tool failure
+          logger.warn(`Tool ${chalk.cyan(name)} failed: ${result.error?.message}`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  error: result.error,
+                  metadata: result.metadata,
+                }, null, 2),
+              },
+            ],
+            isError: true,
+          };
+        }
 
+        // Success response with proper metadata
         const response = {
           success: true,
-          data: data,
+          data: result.data,
           metadata: {
-            executionTime: existingMetadata.executionTime || executionTime,
-            tokensUsed: existingMetadata.tokensUsed || Math.ceil(JSON.stringify(data).length / 4),
-            cacheHit: existingMetadata.cacheHit || false,
+            executionTime: result.metadata?.executionTime ?? 0,
+            tokensUsed: result.metadata?.tokensUsed ?? Math.ceil(JSON.stringify(result.data).length / 4),
+            cacheHit: result.metadata?.cacheHit ?? false,
+            toolVersion: result.metadata?.toolVersion,
           },
         };
         return {

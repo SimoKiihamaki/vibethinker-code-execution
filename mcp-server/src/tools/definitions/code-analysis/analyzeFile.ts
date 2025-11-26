@@ -8,6 +8,13 @@ export const analyzeFile: ToolDefinition = {
     name: 'analyzeFile',
     description: 'Deep analysis of a single file including complexity, patterns, and issues',
     category: 'code-analysis',
+    version: '1.1.0',
+    capabilities: ['read-files', 'ast-parsing'],
+    resourceHints: {
+        estimatedMemoryMB: 50,
+        estimatedTimeMs: 2000,
+        cpuIntensive: true,
+    },
     inputSchema: z.object({
         filePath: z.string().describe('Path to the file to analyze'),
         analysisType: z.enum(['full', 'complexity', 'patterns', 'issues']).default('full'),

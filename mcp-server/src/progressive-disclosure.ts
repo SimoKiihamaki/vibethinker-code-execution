@@ -257,7 +257,7 @@ export async function ${tool.name}(input: ${tool.name}Input): Promise<${tool.nam
   try {
     const result = await mlxClient.generateCompletion(prompt, {
       temperature: 0.1,
-      max_tokens: 4096,
+      maxTokens: 4096,
     });
     
     const executionTime = Date.now() - startTime;

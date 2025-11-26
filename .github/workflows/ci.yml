@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'mcp-server/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: mcp-server
+
+      - name: Lint
+        run: pnpm lint
+        working-directory: mcp-server
+
+      - name: Type check
+        run: pnpm type-check
+        working-directory: mcp-server
+
+  test:
+    name: Test with Coverage
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'mcp-server/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: mcp-server
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+        working-directory: mcp-server
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./mcp-server/coverage
+          files: ./mcp-server/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: mcp-server/coverage/
+          retention-days: 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'mcp-server/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: mcp-server
+
+      - name: Build
+        run: pnpm build
+        working-directory: mcp-server
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: mcp-server/dist/
+          retention-days: 7
+
+  hooks-validation:
+    name: Validate Hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate pre-tool-use hook
+        run: |
+          echo '{"event":"PreToolUse","tool_name":"Read","tool_input":{"file_path":"/test/file.ts"}}' | \
+          node hooks/pre-tool-use.js | \
+          grep -q '"decision"'
+
+      - name: Validate post-tool-use hook
+        run: |
+          echo '{"event":"PostToolUse","tool_name":"Read","tool_input":{},"tool_output":{},"execution_time_ms":100}' | \
+          node hooks/post-tool-use.js | \
+          grep -q '"decision"'
+
+      - name: Validate notification hook
+        run: |
+          echo '{"event":"Notification","type":"info","title":"Test","message":"test"}' | \
+          node hooks/notification.js | \
+          grep -q '"decision"'

@@ -79,9 +79,18 @@ When iterating on new tools you can run the MCP server in isolation.
 
 ```bash
 cd mcp-server
-npm install
-npm run build
-npm start   # waits for stdio connections (Claude Code or tests)
+pnpm install
+pnpm run build
+pnpm start   # waits for stdio connections (Claude Code or tests)
+
+# Run the test suite (239 tests)
+pnpm test
+
+# Run with coverage
+pnpm test -- --coverage
+
+# Type checking
+pnpm tsc --noEmit
 ```
 
 ## 6. Customization knobs
