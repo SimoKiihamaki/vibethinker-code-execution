@@ -182,6 +182,9 @@ describe('Error Utilities', () => {
 
       // Allow 10ms tolerance for timer precision variations across different systems and CI environments
       expect(result.metadata?.executionTime).toBeGreaterThanOrEqual(40);
+      // Add upper bound check to validate the timer is working correctly
+      // Allow reasonable overhead for system scheduling and test execution
+      expect(result.metadata?.executionTime).toBeLessThanOrEqual(200);
     });
   });
 

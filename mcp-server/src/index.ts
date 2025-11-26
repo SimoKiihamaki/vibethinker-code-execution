@@ -21,17 +21,13 @@ interface JsonSchemaOutput {
   [key: string]: unknown;
 }
 
-// Type alias for the converter function to avoid complex generic inference
-type ZodToJsonSchemaConverter = (schema: unknown, name: string) => unknown;
-
 /**
  * Convert a Zod schema to JSON Schema format.
  *
  * This wrapper function provides a clear type boundary for the zod-to-json-schema library.
  * The library's complex generic return types can cause TypeScript's "Type instantiation is
- * excessively deep" error (TS2589). We use explicit runtime typing here to avoid this issue
- * while maintaining runtime safety - the zodToJsonSchema function handles the actual conversion
- * and validates the schema internally.
+ * excessively deep" error (TS2589). We use @ts-expect-error to document this known issue
+ * while maintaining some type safety for other usages.
  *
  * TODO: Consider alternatives to zod-to-json-schema that don't suffer from deep type instantiation:
  * - https://github.com/StefanTerdell/zod-to-json-schema/issues (file an issue)
@@ -43,9 +39,10 @@ type ZodToJsonSchemaConverter = (schema: unknown, name: string) => unknown;
  * @returns JSON Schema representation of the Zod schema
  */
 function convertToJsonSchema(schema: unknown, name: string): JsonSchemaOutput {
-  // Use type assertion to cast the function and avoid deep type inference
-  const converter = zodToJsonSchema as ZodToJsonSchemaConverter;
-  return converter(schema, name) as JsonSchemaOutput;
+  // @ts-expect-error - Deep type instantiation issue in zod-to-json-schema library
+  // The complex generic return types cause TS2589. Using unknown input and JsonSchemaOutput
+  // provides runtime safety while avoiding the compiler issue.
+  return zodToJsonSchema(schema, name) as JsonSchemaOutput;
 }
 
 export class VibeThinkerMCPServer {

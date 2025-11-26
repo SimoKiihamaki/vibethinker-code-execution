@@ -323,7 +323,7 @@ describe('Hook Lifecycle Integration', () => {
 
       expect(notifyOutput?.decision).toBe('continue');
       expect(notifyOutput?.systemMessage).toContain('2 TODO');
-    }, 25000); // 25 second timeout for complete lifecycle test with 4 sequential process spawns (~5s each)
+    }, 22000); // Timeout for complete lifecycle test with 4 sequential process spawns (~5s each)
 
     it('should handle blocked tool execution flow', async () => {
       // Step 1: PreToolUse blocks dangerous command

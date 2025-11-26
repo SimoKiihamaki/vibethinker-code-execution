@@ -53,6 +53,7 @@ function deepMerge<T extends Record<string, unknown>>(
 
 /**
  * Strip surrounding quotes from a value and unescape common sequences
+ * Uses a single-pass regex callback to correctly handle all escape sequences
  */
 function stripQuotes(value: string): string {
   if (value.length < 2) return value;
@@ -64,21 +65,30 @@ function stripQuotes(value: string): string {
   if ((firstChar === '"' && lastChar === '"') || (firstChar === "'" && lastChar === "'")) {
     let unquoted = value.slice(1, -1);
 
-    // Unescape common escape sequences for double-quoted strings
-    // Order matters: process character escapes first, then backslash escape last
-    // to avoid incorrectly converting literal \\n to newline
+    // For double-quoted strings, handle all escape sequences in a single pass
+    // This prevents issues where \\n would incorrectly become a newline
     if (firstChar === '"') {
-      unquoted = unquoted
-        .replace(/\\n/g, '\n')
-        .replace(/\\t/g, '\t')
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, '\\');
+      // Use a single regex to handle all escape sequences in one pass
+      unquoted = unquoted.replace(/\\(["\\nt])/g, (match, ch) => {
+        switch (ch) {
+          case 'n': return '\n';
+          case 't': return '\t';
+          case '"': return '"';
+          case '\\': return '\\';
+          default: return match;
+        }
+      });
     }
     // For single-quoted strings, only unescape escaped single quotes and backslashes
     else {
-      unquoted = unquoted
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, '\\');
+      // Use a single regex to handle all escape sequences in one pass
+      unquoted = unquoted.replace(/\\(['\\])/g, (match, ch) => {
+        switch (ch) {
+          case "'": return "'";
+          case '\\': return '\\';
+          default: return match;
+        }
+      });
     }
 
     return unquoted;

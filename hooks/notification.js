@@ -280,19 +280,17 @@ async function logNotification(notification) {
 
 /**
  * Sanitize string for safe display in notifications
- * Removes/escapes dangerous characters and limits length
- * Escapes double quotes and backslashes for AppleScript safety
+ * Uses a whitelist approach to only allow safe characters
+ * This prevents shell injection and AppleScript injection attacks
  */
 function sanitizeNotificationString(str, maxLength = 200) {
   if (typeof str !== 'string') return '';
-  // Remove control characters, backticks, and shell metacharacters
-  // Then escape backslashes and double quotes for AppleScript
+  // Whitelist approach: allow only letters, numbers, whitespace, and safe punctuation
+  // This is more secure than blacklisting specific dangerous characters
   return str
-    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
-    .replace(/[`$()]/g, '') // Remove shell metacharacters
-    .replace(/\\/g, '\\\\') // Escape backslashes first
-    .replace(/"/g, '\\"') // Escape double quotes for AppleScript
-    .replace(/\n/g, ' ') // Normalize newlines to spaces
+    .replace(/[^a-zA-Z0-9\s.,!?-]/g, '') // Remove all but safe characters
+    .replace(/\s+/g, ' ') // Normalize multiple whitespace to single space
+    .trim()
     .slice(0, maxLength);
 }
 

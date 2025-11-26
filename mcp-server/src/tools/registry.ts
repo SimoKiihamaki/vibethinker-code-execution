@@ -312,9 +312,25 @@ export class ToolRegistry {
 
   /**
    * Infer error code from error object
+   * First checks for error.code property (Node.js system errors like ENOENT, EACCES),
+   * then falls back to message matching as a last resort.
    */
   private inferErrorCode(error: unknown): ErrorCode {
     if (error instanceof Error) {
+      // First, check for Node.js error codes (more reliable than message matching)
+      // These are locale-independent and consistent across Node.js versions
+      if ('code' in error && typeof error.code === 'string') {
+        const code = error.code;
+        if (code === 'ENOENT') return ErrorCodes.PATH_NOT_FOUND;
+        if (code === 'EACCES' || code === 'EPERM') return ErrorCodes.PATH_ACCESS_DENIED;
+        if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT') return ErrorCodes.TOOL_TIMEOUT;
+        if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ENETUNREACH') {
+          return ErrorCodes.NETWORK_ERROR;
+        }
+      }
+
+      // Fall back to message matching as a last resort
+      // This is less reliable but provides coverage for non-system errors
       const message = error.message.toLowerCase();
 
       if (message.includes('access denied') || message.includes('permission')) {
@@ -359,7 +375,16 @@ export class ToolRegistry {
       });
     }
 
-    return result.data!;
+    // Explicit check that result is successful and has data
+    // The isToolError check above ensures success is true, but TypeScript
+    // needs this explicit check to narrow the type properly
+    if (!('success' in result) || !result.success || result.data === undefined) {
+      throw new ToolRegistryError(
+        ErrorCodes.TOOL_EXECUTION_ERROR,
+        'Tool execution did not return data as expected.',
+      );
+    }
+    return result.data;
   }
 
   getToolStats(): Record<string, number> {
