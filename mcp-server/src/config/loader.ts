@@ -132,6 +132,46 @@ function parseNumericEnv(
 }
 
 /**
+ * Safely get a numeric value from JSON, returning undefined for non-numeric or NaN values
+ */
+function safeNumeric(value: unknown): number | undefined {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Safely get a numeric value and multiply by a factor, returning undefined for invalid input
+ */
+function safeNumericMultiplied(value: unknown, multiplier: number): number | undefined {
+  const num = safeNumeric(value);
+  return num !== undefined ? num * multiplier : undefined;
+}
+
+/**
+ * Safely get a boolean value from JSON, returning undefined for non-boolean values
+ */
+function safeBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+/**
+ * Safely get a string value from JSON, returning undefined for non-string values
+ */
+function safeString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Safely get a string value that must be one of allowed values
+ */
+function safeEnum<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
+  if (typeof value !== 'string') return undefined;
+  return allowed.includes(value as T) ? (value as T) : undefined;
+}
+
+/**
  * Load config from .env file
  */
 function loadEnvConfig(envPath: string): DeepPartial<AppConfig> {
@@ -189,66 +229,68 @@ function loadJsonConfig(configPath: string): DeepPartial<AppConfig> {
     // Map mlx_servers to mlx config
     if (json.mlx_servers) {
       config.mlx = {
-        model: json.mlx_servers.model_path,
-        instances: json.mlx_servers.instances,
-        basePort: json.mlx_servers.base_port,
-        maxTokens: json.mlx_servers.max_tokens,
-        temperature: json.mlx_servers.temperature,
-        topP: json.mlx_servers.top_p,
-        topK: json.mlx_servers.top_k,
-        repetitionPenalty: json.mlx_servers.repetition_penalty,
-        presencePenalty: json.mlx_servers.presence_penalty,
-        greedy: json.mlx_servers.greedy,
-        outSeqLength: json.mlx_servers.out_seq_length,
-        gpuMemoryFraction: json.mlx_servers.gpu_memory_fraction,
-        batchSize: json.mlx_servers.batch_size,
-        contextLength: json.mlx_servers.context_length,
+        model: safeString(json.mlx_servers.model_path),
+        instances: safeNumeric(json.mlx_servers.instances),
+        basePort: safeNumeric(json.mlx_servers.base_port),
+        maxTokens: safeNumeric(json.mlx_servers.max_tokens),
+        temperature: safeNumeric(json.mlx_servers.temperature),
+        topP: safeNumeric(json.mlx_servers.top_p),
+        topK: safeNumeric(json.mlx_servers.top_k),
+        repetitionPenalty: safeNumeric(json.mlx_servers.repetition_penalty),
+        presencePenalty: safeNumeric(json.mlx_servers.presence_penalty),
+        greedy: safeBoolean(json.mlx_servers.greedy),
+        outSeqLength: safeNumeric(json.mlx_servers.out_seq_length),
+        gpuMemoryFraction: safeNumeric(json.mlx_servers.gpu_memory_fraction),
+        batchSize: safeNumeric(json.mlx_servers.batch_size),
+        contextLength: safeNumeric(json.mlx_servers.context_length),
       };
     }
 
     // Map load_balancer config
     if (json.load_balancer) {
-      config.loadBalancer = {
-        algorithm: json.load_balancer.algorithm,
-        healthCheckInterval: json.load_balancer.health_check_interval * 1000,
-        healthCheckTimeout: json.load_balancer.health_check_timeout * 1000,
-        maxRetries: json.load_balancer.max_retries,
-        retryDelay: json.load_balancer.retry_delay,
+      const lb = json.load_balancer;
+      const lbConfig: DeepPartial<AppConfig['loadBalancer']> = {
+        algorithm: safeEnum(lb.algorithm, ['least_connections', 'round_robin', 'random'] as const),
+        healthCheckInterval: safeNumericMultiplied(lb.health_check_interval, 1000),
+        healthCheckTimeout: safeNumericMultiplied(lb.health_check_timeout, 1000),
+        maxRetries: safeNumeric(lb.max_retries),
+        retryDelay: safeNumeric(lb.retry_delay),
       };
 
-      if (json.load_balancer.circuit_breaker) {
-        config.loadBalancer.circuitBreaker = {
-          failureThreshold: json.load_balancer.circuit_breaker.failure_threshold,
-          recoveryTimeout: json.load_balancer.circuit_breaker.recovery_timeout,
-          halfOpenMaxCalls: json.load_balancer.circuit_breaker.half_open_max_calls,
+      if (lb.circuit_breaker) {
+        lbConfig.circuitBreaker = {
+          failureThreshold: safeNumeric(lb.circuit_breaker.failure_threshold),
+          recoveryTimeout: safeNumeric(lb.circuit_breaker.recovery_timeout),
+          halfOpenMaxCalls: safeNumeric(lb.circuit_breaker.half_open_max_calls),
         };
       }
+
+      config.loadBalancer = lbConfig;
     }
 
     // Map performance config
     if (json.performance) {
       config.performance = {
-        targetTokensPerSecond: json.performance.target_tokens_per_second,
-        maxQueueSize: json.performance.max_queue_size,
-        requestTimeout: json.performance.request_timeout,
-        keepAlive: json.performance.keep_alive,
-        tcpNoDelay: json.performance.tcp_nodelay,
-        compression: json.performance.compression,
+        targetTokensPerSecond: safeNumeric(json.performance.target_tokens_per_second),
+        maxQueueSize: safeNumeric(json.performance.max_queue_size),
+        requestTimeout: safeNumeric(json.performance.request_timeout),
+        keepAlive: safeBoolean(json.performance.keep_alive),
+        tcpNoDelay: safeBoolean(json.performance.tcp_nodelay),
+        compression: safeBoolean(json.performance.compression),
       };
     }
 
     // Map monitoring config to logging
     if (json.monitoring) {
+      const rawLevel = safeString(json.monitoring.logging_level);
+      const normalizedLevel = rawLevel ? rawLevel.toLowerCase() : undefined;
       config.logging = {
-        level:
-          typeof json.monitoring.logging_level === 'string'
-            ? json.monitoring.logging_level.toLowerCase()
-            : undefined,
-        logRequests: json.monitoring.log_requests,
-        logResponses: json.monitoring.log_responses,
+        level: safeEnum(normalizedLevel, ['error', 'warn', 'info', 'debug', 'verbose', 'silly'] as const),
+        logRequests: safeBoolean(json.monitoring.log_requests),
+        logResponses: safeBoolean(json.monitoring.log_responses),
       };
       config.server = {
-        metricsPort: json.monitoring.metrics_port,
+        metricsPort: safeNumeric(json.monitoring.metrics_port),
       };
     }
 
