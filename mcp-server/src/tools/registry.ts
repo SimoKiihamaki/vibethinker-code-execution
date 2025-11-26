@@ -347,8 +347,15 @@ export class ToolRegistry {
     const result = await this.executeTool<T>(name, args);
 
     if (isToolError(result)) {
-      throw new ToolRegistryError(result.error!.code as ErrorCode, result.error!.message, {
-        recoveryHint: result.error!.recoveryHint,
+      // Destructure with defaults to avoid non-null assertions
+      // isToolError type guard ensures error exists, but we use defaults for extra safety
+      const {
+        code = ErrorCodes.TOOL_EXECUTION_ERROR,
+        message = 'Unknown error',
+        recoveryHint,
+      } = result.error || {};
+      throw new ToolRegistryError(code as ErrorCode, message, {
+        recoveryHint,
       });
     }
 

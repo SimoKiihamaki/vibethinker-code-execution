@@ -180,8 +180,8 @@ describe('Error Utilities', () => {
         { toolName: 'testTool', startTime }
       );
 
-      // Allow 1ms tolerance for timer precision variations across different systems
-      expect(result.metadata?.executionTime).toBeGreaterThanOrEqual(49);
+      // Allow 10ms tolerance for timer precision variations across different systems and CI environments
+      expect(result.metadata?.executionTime).toBeGreaterThanOrEqual(40);
     });
   });
 

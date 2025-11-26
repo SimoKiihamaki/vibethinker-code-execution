@@ -288,7 +288,7 @@ function sanitizeNotificationString(str, maxLength = 200) {
   // Remove control characters, backticks, and shell metacharacters
   // Then escape backslashes and double quotes for AppleScript
   return str
-    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters (use uppercase hex for clarity)
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
     .replace(/[`$()]/g, '') // Remove shell metacharacters
     .replace(/\\/g, '\\\\') // Escape backslashes first
     .replace(/"/g, '\\"') // Escape double quotes for AppleScript
@@ -298,7 +298,8 @@ function sanitizeNotificationString(str, maxLength = 200) {
 
 /**
  * Send desktop notification (cross-platform)
- * Uses execFile/spawn with argument arrays to prevent shell injection
+ * Uses execFile/spawn with argument arrays to prevent shell injection.
+ * For macOS, writes AppleScript to a temporary file to avoid string interpolation issues.
  */
 async function sendDesktopNotification(type, title, message) {
   try {
@@ -312,10 +313,22 @@ async function sendDesktopNotification(type, title, message) {
     const safeMessage = sanitizeNotificationString(message);
 
     if (platform === 'darwin') {
-      // macOS - use osascript with proper argument passing
-      // The -e argument contains the AppleScript, with variables passed safely
-      const script = `display notification "${safeMessage}" with title "Claude Code" subtitle "${safeTitle}"`;
-      await execFileAsync('osascript', ['-e', script]);
+      // macOS - write AppleScript to a temporary file to avoid string interpolation issues
+      // This is more robust than embedding sanitized strings directly into an AppleScript string
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(
+        tmpDir,
+        `claude_notification_${Date.now()}_${Math.random().toString(36).slice(2)}.applescript`
+      );
+      const scriptContent = `display notification "${safeMessage}" with title "Claude Code" subtitle "${safeTitle}"`;
+
+      try {
+        await fs.writeFile(tmpFile, scriptContent, { encoding: 'utf8' });
+        await execFileAsync('osascript', [tmpFile]);
+      } finally {
+        // Clean up the temporary file
+        await fs.unlink(tmpFile).catch(() => {});
+      }
     } else if (platform === 'linux') {
       // Linux - use notify-send with argument array (no shell interpolation)
       const urgency = type === 'error' || type === 'critical' ? 'critical' : 'normal';

@@ -69,6 +69,13 @@ export interface ToolDefinition {
    * - The handler receives validated data matching the inputSchema
    * - Returns Promise<unknown> to encourage explicit typing at call sites
    *
+   * KNOWN LIMITATION: The generic `z.infer<z.ZodObject<z.ZodRawShape>>` doesn't provide
+   * useful type inference for tool implementations. This is because the actual schema
+   * type is lost when stored in the ToolDefinition interface. A generic parameter on
+   * ToolDefinition (e.g., `ToolDefinition<TSchema extends z.ZodObject<any>>`) would
+   * solve this, but adds complexity to the registry system. The workaround below is
+   * recommended for type-safe tool implementations.
+   *
    * For improved type safety in tool implementations, use z.infer:
    * @example
    * ```ts

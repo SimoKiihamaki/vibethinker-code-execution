@@ -33,6 +33,11 @@ type ZodToJsonSchemaConverter = (schema: unknown, name: string) => unknown;
  * while maintaining runtime safety - the zodToJsonSchema function handles the actual conversion
  * and validates the schema internally.
  *
+ * TODO: Consider alternatives to zod-to-json-schema that don't suffer from deep type instantiation:
+ * - https://github.com/StefanTerdell/zod-to-json-schema/issues (file an issue)
+ * - Alternative: @anatine/zod-openapi or manual JSON Schema generation
+ * - Alternative: Use zod's .describe() with a simpler conversion utility
+ *
  * @param schema - A Zod schema to convert (typed as unknown to avoid deep inference)
  * @param name - The name to use for the schema definition
  * @returns JSON Schema representation of the Zod schema
