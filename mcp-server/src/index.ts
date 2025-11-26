@@ -15,6 +15,34 @@ import { getConfig } from './config/index.js';
 
 const logger = createLogger({ component: 'MCPServer' });
 
+// Type for JSON Schema output
+interface JsonSchemaOutput {
+  definitions?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+// Type alias for the converter function to avoid complex generic inference
+type ZodToJsonSchemaConverter = (schema: unknown, name: string) => unknown;
+
+/**
+ * Convert a Zod schema to JSON Schema format.
+ *
+ * This wrapper function provides a clear type boundary for the zod-to-json-schema library.
+ * The library's complex generic return types can cause TypeScript's "Type instantiation is
+ * excessively deep" error (TS2589). We use explicit runtime typing here to avoid this issue
+ * while maintaining runtime safety - the zodToJsonSchema function handles the actual conversion
+ * and validates the schema internally.
+ *
+ * @param schema - A Zod schema to convert (typed as unknown to avoid deep inference)
+ * @param name - The name to use for the schema definition
+ * @returns JSON Schema representation of the Zod schema
+ */
+function convertToJsonSchema(schema: unknown, name: string): JsonSchemaOutput {
+  // Use type assertion to cast the function and avoid deep type inference
+  const converter = zodToJsonSchema as ZodToJsonSchemaConverter;
+  return converter(schema, name) as JsonSchemaOutput;
+}
+
 export class VibeThinkerMCPServer {
   private server: Server;
   private mlxClient: MLXClient;
@@ -59,13 +87,11 @@ export class VibeThinkerMCPServer {
 
       return {
         tools: tools.map(tool => {
-          // Convert Zod schema to JSON Schema with explicit type
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const jsonSchemaDoc = zodToJsonSchema(tool.inputSchema as any, tool.name) as Record<string, unknown>;
+          // Convert Zod schema to JSON Schema using type-safe wrapper
+          const jsonSchemaDoc = convertToJsonSchema(tool.inputSchema, tool.name);
 
           // Extract the actual schema definition (not the $ref document)
-          const definitions = jsonSchemaDoc.definitions as Record<string, unknown> | undefined;
-          const inputSchema = definitions?.[tool.name] || jsonSchemaDoc;
+          const inputSchema = jsonSchemaDoc.definitions?.[tool.name] || jsonSchemaDoc;
 
           // Generate a title from the tool name (capitalize and add spaces)
           const title = tool.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();

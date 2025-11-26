@@ -110,10 +110,24 @@ async function main() {
     const stdinData = await readStdin();
     input = JSON.parse(stdinData);
   } catch (error) {
-    // For notification hooks, continue even on parse error
-    outputDecision('continue', `Failed to parse notification input: ${error.message}`, {
-      context: { parseError: true },
-    });
+    // For notification hooks, continue even on parse error but provide recovery hints
+    outputDecision(
+      'continue',
+      `Failed to parse notification input: ${error.message}
+
+Expected input format (JSON):
+{
+  "event": "Notification",
+  "type": "info" | "warning" | "error" | "success",
+  "title": "Notification Title",
+  "message": "Detailed message",
+  "context": { ... }
+}
+Please ensure your input matches this structure.`,
+      {
+        context: { parseError: true },
+      }
+    );
     return;
   }
 
