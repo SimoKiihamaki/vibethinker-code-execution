@@ -233,6 +233,8 @@ function loadJsonConfig(configPath: string): DeepPartial<AppConfig> {
     // Map mlx_servers to mlx config
     if (json.mlx_servers) {
       config.mlx = {
+        host: safeString(json.mlx_servers.host),
+        port: safeNumeric(json.mlx_servers.port),
         model: safeString(json.mlx_servers.model_path),
         instances: safeNumeric(json.mlx_servers.instances),
         basePort: safeNumeric(json.mlx_servers.base_port),

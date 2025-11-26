@@ -4,10 +4,6 @@ import { ToolDefinition } from '../../types.js';
 import {
     validatePath,
     logger,
-    ErrorCodes,
-    createToolSuccess,
-    createToolFailure,
-    withErrorHandling,
 } from '../../utils.js';
 
 type SnippetLine = {
