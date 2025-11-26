@@ -65,12 +65,14 @@ function stripQuotes(value: string): string {
     let unquoted = value.slice(1, -1);
 
     // Unescape common escape sequences for double-quoted strings
+    // Order matters: process character escapes first, then backslash escape last
+    // to avoid incorrectly converting literal \\n to newline
     if (firstChar === '"') {
       unquoted = unquoted
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, '\\')
         .replace(/\\n/g, '\n')
-        .replace(/\\t/g, '\t');
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
     }
     // For single-quoted strings, only unescape escaped single quotes and backslashes
     else {
@@ -108,6 +110,18 @@ function parseEnvFile(content: string): Record<string, string> {
 }
 
 /**
+ * Parse a numeric environment variable, returning undefined for invalid input
+ */
+function parseNumericEnv(
+  value: string | undefined,
+  parser: (v: string) => number
+): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = parser(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+/**
  * Load config from .env file
  */
 function loadEnvConfig(envPath: string): DeepPartial<AppConfig> {
@@ -123,13 +137,26 @@ function loadEnvConfig(envPath: string): DeepPartial<AppConfig> {
 
     // Map env variables to config
     if (env.MODEL_PATH) config.mlx!.model = env.MODEL_PATH;
-    if (env.temperature) config.mlx!.temperature = parseFloat(env.temperature);
-    if (env.top_p) config.mlx!.topP = parseFloat(env.top_p);
-    if (env.top_k) config.mlx!.topK = parseInt(env.top_k, 10);
-    if (env.repetition_penalty) config.mlx!.repetitionPenalty = parseFloat(env.repetition_penalty);
-    if (env.presence_penalty) config.mlx!.presencePenalty = parseFloat(env.presence_penalty);
+
+    const temperature = parseNumericEnv(env.temperature, parseFloat);
+    if (temperature !== undefined) config.mlx!.temperature = temperature;
+
+    const topP = parseNumericEnv(env.top_p, parseFloat);
+    if (topP !== undefined) config.mlx!.topP = topP;
+
+    const topK = parseNumericEnv(env.top_k, (v) => parseInt(v, 10));
+    if (topK !== undefined) config.mlx!.topK = topK;
+
+    const repetitionPenalty = parseNumericEnv(env.repetition_penalty, parseFloat);
+    if (repetitionPenalty !== undefined) config.mlx!.repetitionPenalty = repetitionPenalty;
+
+    const presencePenalty = parseNumericEnv(env.presence_penalty, parseFloat);
+    if (presencePenalty !== undefined) config.mlx!.presencePenalty = presencePenalty;
+
     if (env.greedy) config.mlx!.greedy = env.greedy === 'true';
-    if (env.out_seq_length) config.mlx!.outSeqLength = parseInt(env.out_seq_length, 10);
+
+    const outSeqLength = parseNumericEnv(env.out_seq_length, (v) => parseInt(v, 10));
+    if (outSeqLength !== undefined) config.mlx!.outSeqLength = outSeqLength;
 
     return config;
   } catch {
@@ -203,7 +230,10 @@ function loadJsonConfig(configPath: string): DeepPartial<AppConfig> {
     // Map monitoring config to logging
     if (json.monitoring) {
       config.logging = {
-        level: json.monitoring.logging_level?.toLowerCase(),
+        level:
+          typeof json.monitoring.logging_level === 'string'
+            ? json.monitoring.logging_level.toLowerCase()
+            : undefined,
         logRequests: json.monitoring.log_requests,
         logResponses: json.monitoring.log_responses,
       };
