@@ -63,10 +63,24 @@ export interface ToolDefinition {
   /**
    * Tool execution handler.
    * Accepts validated args from inputSchema and returns a Promise.
-   * Uses `any` for backward compatibility with existing tools.
+   *
+   * Type safety notes:
+   * - Input args are validated by inputSchema BEFORE reaching the handler
+   * - The handler receives validated data matching the inputSchema
+   * - Returns Promise<unknown> to encourage explicit typing at call sites
+   *
+   * For improved type safety in tool implementations, use z.infer:
+   * @example
+   * ```ts
+   * const inputSchema = z.object({ query: z.string() });
+   * type Input = z.infer<typeof inputSchema>;
+   * handler: async (args) => {
+   *   const { query } = args as Input; // Safe cast after Zod validation
+   *   // ...
+   * }
+   * ```
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (args: any) => Promise<any>;
+  handler: (args: z.infer<z.ZodObject<z.ZodRawShape>>) => Promise<unknown>;
 
   /** Searchable tags */
   tags: string[];

@@ -35,6 +35,32 @@ export const ErrorCodes = {
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 /**
+ * Custom error class for path validation errors
+ * Provides structured error information with code and context
+ */
+export class PathValidationError extends Error {
+  public readonly code: ErrorCode;
+  public readonly context?: Record<string, unknown>;
+  public readonly recoveryHint?: string;
+
+  constructor(
+    code: ErrorCode,
+    message: string,
+    options?: {
+      recoveryHint?: string;
+      context?: Record<string, unknown>;
+    }
+  ) {
+    super(message);
+    this.name = 'PathValidationError';
+    this.code = code;
+    this.recoveryHint = options?.recoveryHint;
+    this.context = options?.context;
+    Error.captureStackTrace(this, PathValidationError);
+  }
+}
+
+/**
  * Structured error response interface
  */
 export interface StructuredError {
@@ -268,11 +294,14 @@ export async function validatePath(p: string): Promise<string> {
     const targetRealPath = await fs.realpath(resolved).catch(() => resolved);
 
     if (!isPathWithinRepo(targetRealPath, repoRealPath)) {
-        const error = createError(ErrorCodes.PATH_ACCESS_DENIED, `Access denied: Path ${p} is outside repository root`, {
-            recoveryHint: 'Ensure the path is within the repository root',
-            context: { path: p, resolved, repoRoot: repoRealPath },
-        });
-        throw Object.assign(new Error(error.message), { code: error.code, context: error.context });
+        throw new PathValidationError(
+            ErrorCodes.PATH_ACCESS_DENIED,
+            `Access denied: Path ${p} is outside repository root`,
+            {
+                recoveryHint: 'Ensure the path is within the repository root',
+                context: { path: p, resolved, repoRoot: repoRealPath },
+            }
+        );
     }
 
     return targetRealPath;

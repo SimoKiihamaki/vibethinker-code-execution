@@ -265,7 +265,8 @@ export class ToolRegistry {
 
     // Execute tool handler with error handling
     try {
-      const result = await tool.handler(validatedArgs);
+      // validatedArgs is safe to cast - it's been validated by inputSchema.parse()
+      const result = await tool.handler(validatedArgs as Record<string, unknown>);
       const executionTime = Date.now() - startTime;
 
       logger.debug(`Tool ${chalk.cyan(name)} executed successfully in ${executionTime}ms`);

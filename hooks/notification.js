@@ -281,13 +281,18 @@ async function logNotification(notification) {
 /**
  * Sanitize string for safe display in notifications
  * Removes/escapes dangerous characters and limits length
+ * Escapes double quotes and backslashes for AppleScript safety
  */
 function sanitizeNotificationString(str, maxLength = 200) {
   if (typeof str !== 'string') return '';
   // Remove control characters, backticks, and shell metacharacters
+  // Then escape backslashes and double quotes for AppleScript
   return str
-    .replace(/[\x00-\x1f\x7f]/g, '') // Remove control characters
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters (use uppercase hex for clarity)
     .replace(/[`$()]/g, '') // Remove shell metacharacters
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/"/g, '\\"') // Escape double quotes for AppleScript
+    .replace(/\n/g, ' ') // Normalize newlines to spaces
     .slice(0, maxLength);
 }
 
