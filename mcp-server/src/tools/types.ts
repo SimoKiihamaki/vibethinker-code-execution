@@ -199,3 +199,59 @@ export function isToolDefinition(obj: unknown): obj is ToolDefinition {
     Array.isArray(tool.tags)
   );
 }
+
+/**
+ * Helper type for creating tool definitions with preserved schema types.
+ * This provides better type inference for the handler's args parameter.
+ */
+export type TypedToolDefinition<TSchema extends z.ZodObject<z.ZodRawShape>> = Omit<
+  ToolDefinition,
+  'inputSchema' | 'handler'
+> & {
+  inputSchema: TSchema;
+  handler: (args: z.infer<TSchema>) => Promise<unknown>;
+};
+
+/**
+ * Type-safe helper function for defining tools with preserved schema types.
+ *
+ * This helper addresses the TypeScript limitation where `z.infer<z.ZodObject<z.ZodRawShape>>`
+ * loses specific type information. By using this builder pattern, the schema type is
+ * preserved and properly inferred in the handler.
+ *
+ * @example
+ * ```ts
+ * const myToolSchema = z.object({
+ *   query: z.string(),
+ *   maxResults: z.number().optional(),
+ * });
+ *
+ * const myTool = defineToolWithSchema(myToolSchema, {
+ *   name: 'myTool',
+ *   description: 'My tool description',
+ *   category: 'search',
+ *   handler: async (args) => {
+ *     // args is properly typed as { query: string; maxResults?: number }
+ *     const { query, maxResults } = args;
+ *     return { results: [] };
+ *   },
+ *   tags: ['search'],
+ *   complexity: 'simple',
+ *   externalDependencies: [],
+ *   npmDependencies: [],
+ *   internalDependencies: [],
+ * });
+ * ```
+ */
+export function defineToolWithSchema<TSchema extends z.ZodObject<z.ZodRawShape>>(
+  schema: TSchema,
+  definition: Omit<TypedToolDefinition<TSchema>, 'inputSchema'>
+): ToolDefinition {
+  return {
+    ...definition,
+    inputSchema: schema,
+    // Cast handler to the generic form for storage in ToolDefinition
+    // The type safety is preserved at the call site via TypedToolDefinition
+    handler: definition.handler as ToolDefinition['handler'],
+  };
+}

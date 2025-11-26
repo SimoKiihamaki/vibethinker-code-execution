@@ -8,6 +8,7 @@ import {
   getRecoveryHint,
   withErrorHandling,
   isToolError,
+  inferErrorCode,
   type ErrorCode,
   type StructuredError,
 } from './utils.js';
@@ -216,6 +217,7 @@ export class ToolRegistry {
     // Check if tool exists
     const tool = this.getTool(name);
     if (!tool) {
+      const executionTime = Date.now() - startTime;
       const error: StructuredError = {
         code: ErrorCodes.TOOL_NOT_FOUND,
         message: `Tool not found: ${name}`,
@@ -225,9 +227,10 @@ export class ToolRegistry {
       };
 
       logger.error(`Tool execution failed: ${error.message}`);
+      this.updateMetrics(name, executionTime, false, error);
       return createToolFailure<T>(error.code, error.message, {
         recoveryHint: error.recoveryHint,
-        metadata: { executionTime: Date.now() - startTime },
+        metadata: { executionTime },
       });
     }
 
@@ -290,8 +293,8 @@ export class ToolRegistry {
         });
       }
 
-      // Infer error code from error message
-      const errorCode = this.inferErrorCode(executionError);
+      // Infer error code from error - use TOOL_EXECUTION_ERROR as default for handler errors
+      const errorCode = inferErrorCode(executionError, ErrorCodes.TOOL_EXECUTION_ERROR);
       const error: StructuredError = {
         code: errorCode,
         message: errorMessage,
@@ -311,65 +314,14 @@ export class ToolRegistry {
   }
 
   /**
-   * Infer error code from error object
-   * First checks for error.code property (Node.js system errors like ENOENT, EACCES),
-   * then falls back to message matching as a last resort.
-   */
-  private inferErrorCode(error: unknown): ErrorCode {
-    if (error instanceof Error) {
-      // First, check for Node.js error codes (more reliable than message matching)
-      // These are locale-independent and consistent across Node.js versions
-      if ('code' in error && typeof error.code === 'string') {
-        const code = error.code;
-        if (code === 'ENOENT') return ErrorCodes.PATH_NOT_FOUND;
-        if (code === 'EACCES' || code === 'EPERM') return ErrorCodes.PATH_ACCESS_DENIED;
-        if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT') return ErrorCodes.TOOL_TIMEOUT;
-        if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ENETUNREACH') {
-          return ErrorCodes.NETWORK_ERROR;
-        }
-      }
-
-      // Fall back to message matching as a last resort
-      // This is less reliable but provides coverage for non-system errors
-      const message = error.message.toLowerCase();
-
-      if (message.includes('access denied') || message.includes('permission')) {
-        return ErrorCodes.PATH_ACCESS_DENIED;
-      }
-      if (message.includes('not found') || message.includes('enoent')) {
-        return ErrorCodes.PATH_NOT_FOUND;
-      }
-      if (message.includes('timeout')) {
-        return ErrorCodes.TOOL_TIMEOUT;
-      }
-      if (message.includes('validation') || message.includes('invalid')) {
-        return ErrorCodes.TOOL_VALIDATION_ERROR;
-      }
-      if (message.includes('mlx') || message.includes('model')) {
-        return ErrorCodes.MLX_UNAVAILABLE;
-      }
-      if (message.includes('network') || message.includes('econnrefused')) {
-        return ErrorCodes.NETWORK_ERROR;
-      }
-    }
-
-    return ErrorCodes.TOOL_EXECUTION_ERROR;
-  }
-
-  /**
    * Execute a tool and throw on error (for backwards compatibility)
    */
   async executeToolOrThrow<T = unknown>(name: string, args: unknown): Promise<T> {
     const result = await this.executeTool<T>(name, args);
 
     if (isToolError(result)) {
-      // Destructure with defaults to avoid non-null assertions
-      // isToolError type guard ensures error exists, but we use defaults for extra safety
-      const {
-        code = ErrorCodes.TOOL_EXECUTION_ERROR,
-        message = 'Unknown error',
-        recoveryHint,
-      } = result.error || {};
+      // isToolError type guard guarantees result.error exists and is non-null
+      const { code, message, recoveryHint } = result.error;
       throw new ToolRegistryError(code as ErrorCode, message, {
         recoveryHint,
       });

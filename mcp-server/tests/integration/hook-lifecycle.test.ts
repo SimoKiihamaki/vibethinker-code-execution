@@ -26,7 +26,14 @@ async function runHook(
     const hookPath = path.join(HOOKS_DIR, `${hookName}.js`);
     const child = spawn('node', [hookPath], {
       cwd: process.cwd(),
-      env: { ...process.env, NODE_ENV: 'test' },
+      // Isolate test environment to prevent side effects from developer env vars
+      // This ensures tests don't trigger desktop notifications or write logs
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        CLAUDE_NOTIFICATION_DESKTOP: 'false',
+        CLAUDE_NOTIFICATION_LOGGING: 'false',
+      },
     });
 
     let stdout = '';
@@ -362,9 +369,13 @@ describe('Hook Lifecycle Integration', () => {
   describe('Error Handling', () => {
     it('should handle malformed input gracefully in pre-tool-use', async () => {
       const result = await runHook('pre-tool-use', {});
+      const output = parseHookOutput(result.stdout);
 
-      // Should block due to missing tool_input or fail validation
-      expect(result.exitCode).not.toBe(null);
+      // Malformed input (missing tool_name/tool_input) still allows the hook to run
+      // The hook continues because there are no validation failures for undefined tools
+      // Exit code 0 means the hook completed (continue decision)
+      expect(result.exitCode).toBe(0);
+      expect(output?.decision).toBe('continue');
     });
 
     it('should continue on malformed input in post-tool-use', async () => {

@@ -39,7 +39,12 @@ const NOTIFICATION_SETTINGS = {
   // Only show notifications above this severity level
   minSeverity: process.env.CLAUDE_NOTIFICATION_MIN_SEVERITY || 'info',
   // Maximum notifications per minute to prevent spam
-  maxPerMinute: parseInt(process.env.CLAUDE_NOTIFICATION_MAX_PER_MINUTE || '10', 10),
+  // Guard against invalid values (NaN or non-positive) by defaulting to 10
+  maxPerMinute: (() => {
+    const raw = process.env.CLAUDE_NOTIFICATION_MAX_PER_MINUTE;
+    const parsed = raw ? parseInt(raw, 10) : 10;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+  })(),
   // Enable desktop notifications (requires notify-send or similar)
   enableDesktop: process.env.CLAUDE_NOTIFICATION_DESKTOP === 'true',
   // Log all notifications to file

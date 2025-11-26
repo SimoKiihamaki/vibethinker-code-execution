@@ -69,25 +69,29 @@ function stripQuotes(value: string): string {
     // This prevents issues where \\n would incorrectly become a newline
     if (firstChar === '"') {
       // Use a single regex to handle all escape sequences in one pass
-      unquoted = unquoted.replace(/\\(["\\nt])/g, (match, ch) => {
+      // The regex only captures the specific characters listed, so all cases are covered
+      unquoted = unquoted.replace(/\\(["\\nt])/g, (_match, ch) => {
         switch (ch) {
           case 'n': return '\n';
           case 't': return '\t';
           case '"': return '"';
           case '\\': return '\\';
-          default: return match;
         }
+        // TypeScript exhaustiveness: ch is typed as string, but regex guarantees one of the above
+        return ch;
       });
     }
     // For single-quoted strings, only unescape escaped single quotes and backslashes
     else {
       // Use a single regex to handle all escape sequences in one pass
-      unquoted = unquoted.replace(/\\(['\\])/g, (match, ch) => {
+      // The regex only captures the specific characters listed, so all cases are covered
+      unquoted = unquoted.replace(/\\(['\\])/g, (_match, ch) => {
         switch (ch) {
           case "'": return "'";
           case '\\': return '\\';
-          default: return match;
         }
+        // TypeScript exhaustiveness: ch is typed as string, but regex guarantees one of the above
+        return ch;
       });
     }
 

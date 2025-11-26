@@ -175,8 +175,11 @@ export async function withErrorHandling<T>(
  * Infer error code from error object
  * First checks for error.code property (Node.js system errors like ENOENT, EACCES),
  * then falls back to message matching as a last resort.
+ *
+ * @param error - The error to analyze
+ * @param defaultCode - The default error code to return if no match is found (defaults to INTERNAL_ERROR)
  */
-function inferErrorCode(error: unknown): ErrorCode {
+export function inferErrorCode(error: unknown, defaultCode: ErrorCode = ErrorCodes.INTERNAL_ERROR): ErrorCode {
   if (error instanceof Error) {
     // First, check for Node.js error codes (more reliable than message matching)
     // These are locale-independent and consistent across Node.js versions
@@ -214,7 +217,7 @@ function inferErrorCode(error: unknown): ErrorCode {
     }
   }
 
-  return ErrorCodes.INTERNAL_ERROR;
+  return defaultCode;
 }
 
 /**
