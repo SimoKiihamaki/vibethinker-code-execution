@@ -34,11 +34,11 @@ function createPrettyFormat(component: string) {
 function createJsonFormat(component: string) {
   return winston.format.combine(
     winston.format.timestamp(),
-    winston.format.json(),
     winston.format((info) => {
       info.component = component;
       return info;
-    })()
+    })(),
+    winston.format.json()
   );
 }
 

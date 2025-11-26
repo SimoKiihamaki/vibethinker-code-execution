@@ -52,6 +52,40 @@ function deepMerge<T extends Record<string, unknown>>(
 }
 
 /**
+ * Strip surrounding quotes from a value and unescape common sequences
+ */
+function stripQuotes(value: string): string {
+  if (value.length < 2) return value;
+
+  const firstChar = value[0];
+  const lastChar = value[value.length - 1];
+
+  // Check for matching quotes
+  if ((firstChar === '"' && lastChar === '"') || (firstChar === "'" && lastChar === "'")) {
+    let unquoted = value.slice(1, -1);
+
+    // Unescape common escape sequences for double-quoted strings
+    if (firstChar === '"') {
+      unquoted = unquoted
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t');
+    }
+    // For single-quoted strings, only unescape escaped single quotes and backslashes
+    else {
+      unquoted = unquoted
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
+    }
+
+    return unquoted;
+  }
+
+  return value;
+}
+
+/**
  * Parse .env file content
  */
 function parseEnvFile(content: string): Record<string, string> {
@@ -63,7 +97,10 @@ function parseEnvFile(content: string): Record<string, string> {
 
     const [key, ...valueParts] = trimmed.split('=');
     if (key && valueParts.length > 0) {
-      env[key.trim()] = valueParts.join('=').trim();
+      let value = valueParts.join('=').trim();
+      // Strip surrounding quotes and handle escape sequences
+      value = stripQuotes(value);
+      env[key.trim()] = value;
     }
   }
 
